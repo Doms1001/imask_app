@@ -39,6 +39,13 @@ export default function Departments({ navigation }) {
   }, []);
 
   const handleSelect = (deptKey) => {
+    // if user taps CCS, open the CCSF1 screen
+    if (deptKey === "CCS") {
+      navigation.navigate("CCSF1");
+      return;
+    }
+
+    // default behavior for other departments
     navigation.navigate("NextScreenName", { dept: deptKey });
   };
 

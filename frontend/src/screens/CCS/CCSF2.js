@@ -1,253 +1,186 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   StatusBar,
   Dimensions,
   Platform,
+  Image,
   ScrollView,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+  Animated,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = Math.min(340, width - 48); // card visible width
-const CARD_SPACING = 16;
-const VISIBLE_WIDTH = CARD_WIDTH + CARD_SPACING;
+// Artistic CCSF2 — big, bold, layered gradients, parallax logo, animated pager
+// Drop into src/screens/CCS/CCSF2_Artistic.js and register in your navigator.
 
-const logo = require('../../assets/LP2.png'); // <-- replace with your logo
+const { width, height } = Dimensions.get('window');
+const CONTAINER_W = Math.min(420, width - 28);
+const CARD_GAP = 18;
+const CARD_W = CONTAINER_W;
+const VISIBLE_W = CARD_W + CARD_GAP;
 
-export default function CCSF2({ navigation }) {
+const LOGO = require('../../../assets/CCSlogo.png');
+const BACK = require('../../../assets/back.png');
+
+const DATA = [
+  {
+    title: 'Bachelor of Science in Computer Science',
+    subtitle: 'Specialization in Cybersecurity',
+    desc:
+      'Design secure systems, analyze threats, and craft resilient software — this track balances deep theory with hands-on defensive practice.',
+  },
+  {
+    title: 'Software Engineering',
+    subtitle: 'Apps & Systems',
+    desc: 'Build production-ready software focusing on quality, testing and architecture.',
+  },
+  {
+    title: 'Information Technology',
+    subtitle: 'Networks & Ops',
+    desc: 'Infrastructure, deployment, and operational excellence for real-world systems.',
+  },
+];
+
+export default function CCSF2Artistic({ navigation }) {
   const scrollRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  // three example cards (left-to-right). User will swipe LEFT (right-to-left gesture) to go to next card.
-  const cards = [
-    {
-      title:
-        "Bachelor of Science in\nComputer Science with\nSpecialization in Cybersecurity",
-      desc:
-        "This program equips students with advanced skills in programming, systems development, and information security. It prepares graduates to protect digital systems against cyber threats, manage secure networks, and design innovative solutions for the growing challenges in cybersecurity and technology.",
-    },
-    {
-      title: "Bachelor of Science in\nComputer Science with\nSpecialization in AI",
-      desc:
-        "This program focuses on AI fundamentals — machine learning, data processing and intelligent systems. Graduates will build and deploy models that solve real-world problems.",
-    },
-    {
-      title: "Bachelor of Science in\nInformation Technology",
-      desc:
-        "Covers practical IT skills: networking, system administration, and application deployment. Prepares students for industry roles in IT operations and support.",
-    },
-  ];
+  const [index, setIndex] = useState(0);
+  const parallax = useRef(new Animated.Value(0)).current; // for logo parallax
+  const pulse = useRef(new Animated.Value(0)).current; // for subtle breathing
 
   useEffect(() => {
-    // ensure first card visible on mount
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ x: 0, animated: false });
-    }
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   function onMomentumScrollEnd(e) {
     const x = e.nativeEvent.contentOffset.x;
-    const index = Math.round(x / VISIBLE_WIDTH);
-    setActiveIndex(index);
+    const ix = Math.round(x / VISIBLE_W);
+    setIndex(ix);
   }
 
-  function goToIndex(i) {
+  function go(i) {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({ x: i * VISIBLE_WIDTH, animated: true });
-    setActiveIndex(i);
+    scrollRef.current.scrollTo({ x: i * VISIBLE_W, animated: true });
   }
+
+  function handleScroll(e) {
+    // map scroll position to parallax offset
+    const x = e.nativeEvent.contentOffset.x;
+    parallax.setValue(x);
+  }
+
+  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.03] });
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar
-        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
-        translucent={false}
-      />
+    <SafeAreaView style={s.screen}>
+      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
 
-      {/* top decorative */}
-      <View style={styles.topLeftWhite} />
-      <View style={styles.topRightRed} />
+      {/* layered background art */}
+      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
+      <View style={s.layerTopRight} />
+      <View style={s.layerBottomLeft} />
 
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => navigation?.goBack && navigation.goBack()}
-      >
-        <Text style={styles.backArrow}>↩</Text>
+      {/* back button */}
+      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('CCSF1')}>
+        <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
-      {/* HORIZONTAL SWIPER — swipe LEFT (right-to-left gesture) to go to the next card */}
-      <View style={styles.sliderWrap}>
+      {/* carousel area */}
+      <View style={s.carouselWrap}>
         <ScrollView
           ref={scrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          snapToInterval={VISIBLE_WIDTH}
           decelerationRate="fast"
-          contentContainerStyle={styles.scrollContent}
+          snapToInterval={VISIBLE_W}
+          contentContainerStyle={s.scrollContent}
           onMomentumScrollEnd={onMomentumScrollEnd}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: parallax } } }], {
+            useNativeDriver: false,
+            listener: handleScroll,
+          })}
         >
-          {cards.map((c, i) => (
-            <View key={i} style={styles.cardContainer}>
-              <LinearGradient
-                colors={["#b40000", "#e00000"]}
-                start={[0, 0]}
-                end={[1, 1]}
-                style={styles.card}
-              >
-                <Image source={logo} style={styles.watermark} resizeMode="contain" />
+          {DATA.map((it, i) => {
+            // interpolate a tiny tilt and scale for 3D feel
+            const input = [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W];
+            const rotate = parallax.interpolate({ inputRange: input, outputRange: ['-3deg', '0deg', '3deg'], extrapolate: 'clamp' });
+            const scale = parallax.interpolate({ inputRange: input, outputRange: [0.98, 1, 0.98], extrapolate: 'clamp' });
 
-                <Text style={styles.title}>{c.title}</Text>
+            return (
+              <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
+                <LinearGradient colors={["#ff6161", "#8b0000"]} style={s.card}>
+                  {/* parallax logo (moves slightly opposite of scroll) */}
+                  <Animated.Image
+                    source={LOGO}
+                    style={[s.cardLogo, { transform: [{ translateX: parallax.interpolate({ inputRange: [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W], outputRange: [50, 0, -50] }) }, { scale: pulseScale }] }]}
+                    resizeMode="contain"
+                  />
 
-                <Text style={styles.description}>{c.desc}</Text>
-              </LinearGradient>
-            </View>
-          ))}
+                  <View style={s.textBlock}>
+                    <Text style={s.h1}>{it.title}</Text>
+                    <Text style={s.h2}>{it.subtitle}</Text>
+                    <Text style={s.p}>{it.desc}</Text>
+                  </View>
+                </LinearGradient>
+              </Animated.View>
+            );
+          })}
         </ScrollView>
       </View>
 
-      {/* bottom pager buttons */}
-      <View style={styles.bottomBtns}>
-        {cards.map((_, i) => {
-          const isActive = i === activeIndex;
-          return (
-            <TouchableOpacity
-              key={i}
-              style={[styles.circleBtn, isActive && styles.circleBtnActive]}
-              onPress={() => goToIndex(i)}
-              activeOpacity={0.85}
-            >
-              <Image source={logo} style={styles.circleIcon} resizeMode="contain" />
+      {/* fixed bottom controls */}
+      <View style={s.bottomWrap} pointerEvents="box-none">
+        <View style={s.pagerBox}>
+          {DATA.map((_, i) => (
+            <TouchableOpacity key={i} onPress={() => go(i)} activeOpacity={0.9}>
+              <Animated.View style={[s.outerRing, index === i && s.outerRingActive]}>
+                <View style={s.innerDot}>
+                  <Image source={LOGO} style={s.dotLogo} />
+                </View>
+              </Animated.View>
             </TouchableOpacity>
-          );
-        })}
+          ))}
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#f1f1f1",
-    alignItems: "center",
-  },
-  topLeftWhite: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: "60%",
-    height: 120,
-    backgroundColor: "#ffffff",
-    borderBottomRightRadius: 60,
-  },
-  topRightRed: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    width: 80,
-    height: 80,
-    backgroundColor: "#e60000",
-    borderBottomLeftRadius: 40,
-  },
-  backBtn: {
-    position: "absolute",
-    right: 12,
-    top: 12,
-    width: 50,
-    height: 50,
-    backgroundColor: "#6b6b6b",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 30,
-  },
-  backArrow: {
-    color: "white",
-    fontSize: 20,
-  },
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  bg: { ...StyleSheet.absoluteFillObject },
+  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
+  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.12 },
 
-  sliderWrap: {
-    marginTop: 80,
-    height: 420,
-  },
-  scrollContent: {
-    paddingHorizontal: (width - CARD_WIDTH) / 2 - CARD_SPACING / 2,
-    alignItems: "center",
-  },
-  cardContainer: {
-    width: CARD_WIDTH,
-    marginRight: CARD_SPACING,
-  },
-  card: {
-    width: "100%",
-    borderRadius: 18,
-    paddingVertical: 26,
-    paddingHorizontal: 18,
-    minHeight: 380,
-    overflow: "hidden",
-  },
-  watermark: {
-    position: "absolute",
-    width: "120%",
-    height: "120%",
-    alignSelf: "center",
-    opacity: 0.08,
-  },
-  title: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 18,
-    lineHeight: 30,
-  },
-  description: {
-    color: "white",
-    fontSize: 14,
-    lineHeight: 22,
-    opacity: 0.95,
-  },
+  back: { position: 'absolute', right: 14, top: 14, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  backImg: { width: 34, height: 34, tintColor: '#fff' },
 
-  bottomBtns: {
-    width: "86%",
-    height: 76,
-    marginTop: 22,
-    marginBottom: 18,
-    borderRadius: 12,
-    backgroundColor: "#e6e6e6",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    paddingHorizontal: 22,
-    justifyContent: "space-between",
-    elevation: 6,
-  },
-  circleBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#d9d9d9",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 4,
-  },
-  circleBtnActive: {
-    backgroundColor: "#e33b3b",
-    transform: [{ translateY: -6 }],
-    shadowOpacity: 0.35,
-  },
-  circleIcon: {
-    width: 36,
-    height: 36,
-    tintColor: "#8b0000",
-  },
+  carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
+  scrollContent: { alignItems: 'center', paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2 },
+  cardContainer: { width: CARD_W, marginRight: CARD_GAP },
+  card: { borderRadius: 20, padding: 22, minHeight: '100%', overflow: 'hidden', alignItems: 'flex-start' },
+
+  cardLogo: { position: 'absolute', width: '72%', height: 180, opacity: 0.12, top: 18, right: -10 },
+
+  textBlock: { marginTop: 120 },
+  h1: { color: '#fff', fontSize: 22, fontWeight: '800', lineHeight: 30 },
+  h2: { color: '#fff', fontSize: 14, fontWeight: '700', marginTop: 6, opacity: 0.95 },
+  p: { color: 'rgba(255,255,255,0.95)', marginTop: 14, lineHeight: 20 },
+
+  bottomWrap: { position: 'absolute', left: 0, right: 0, bottom: 18, alignItems: 'center' },
+  pagerBox: { width: Math.min(380, width - 24), height: 84, borderRadius: 14, backgroundColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 12, elevation: 10 },
+
+  outerRing: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  outerRingActive: { transform: [{ translateY: -6 }], shadowColor: '#000', shadowOpacity: 0.22, shadowOffset: { width: 0, height: 6 }, shadowRadius: 8, elevation: 10 },
+  innerDot: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#b71c1c', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#a11a1a' },
+  dotLogo: { width: 28, height: 28, tintColor: '#5f0000' },
 });
