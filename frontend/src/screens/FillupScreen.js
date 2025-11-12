@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+
 import {
-  SafeAreaView,
   View,
   Text,
   TextInput,
@@ -12,10 +12,16 @@ import {
   Dimensions,
   Animated,
   Easing,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { createClient } from "@supabase/supabase-js";
+
+
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function FillupScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -26,7 +32,11 @@ export default function FillupScreen({ navigation }) {
   const [gender, setGender] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // fade + slide-in animation
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
+  const messageOpacity = useRef(new Animated.Value(0)).current;
+  const messageTranslateY = useRef(new Animated.Value(10)).current;
+
   const animOpacity = useRef(new Animated.Value(0)).current;
   const animTranslateX = useRef(new Animated.Value(60)).current;
 
@@ -47,107 +57,190 @@ export default function FillupScreen({ navigation }) {
     ]).start();
   }, []);
 
+  // ✨ fade + slide toast animation
+  const showMessage = (text, type = "success", duration = 3000) => {
+    setMessageType(type);
+    setMessage(text);
+
+    Animated.parallel([
+      Animated.timing(messageOpacity, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(messageTranslateY, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(messageOpacity, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(messageTranslateY, {
+          toValue: -10,
+          duration: 300,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start(() => setMessage(""));
+    }, duration);
+  };
+
   const validate = () => {
-    if (!name.trim()) return Alert.alert("Validation", "Please enter your name.");
-    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email))
-      return Alert.alert("Validation", "Please enter a valid email address.");
-    if (!gender.trim()) return Alert.alert("Validation", "Please enter your gender.");
+    if (!name.trim()) {
+      showMessage("Please enter your name.", "error");
+      return false;
+    }
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
+      showMessage("Please enter a valid email address.", "error");
+      return false;
+    }
+    if (!gender.trim()) {
+      showMessage("Please enter your gender.", "error");
+      return false;
+    }
     return true;
   };
 
-  const onProceed = () => {
-    if (saving) return;
-    if (!validate()) return;
+  const onProceed = async () => {
+  if (saving) return;
+  if (!validate()) return;
 
-    setSaving(true);
+  setSaving(true);
+  try {
+    const { data, error } = await supabase
+      .from("users") // or "submissions"
+      .insert([{ name: name.trim(), email: email.trim(), gender: gender.trim() }])
+      .select();
+
+    if (error) throw error;
+
+    // show toast / message
+    showMessage("Information saved successfully!", "success");
+
+    // clear fields (optional)
+    setName("");
+    setEmail("");
+    setGender("");
+
+    // wait so toast is visible, then navigate
     setTimeout(() => {
-      setSaving(false);
-      Alert.alert("Success", "Your information has been saved (local).");
-      navigation.popToTop();
-      setName("");
-      setEmail("");
-      setGender("");
+      navigation.navigate("welcomingdept"); // <--- exact line to go to welcomingdept
     }, 700);
-  };
+  } catch (e) {
+    console.error("Supabase insert error:", e);
+    showMessage("Failed to save. Please try again.", "error");
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.flex}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.flex}
+    >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { minHeight: SCREEN_H - insets.top - insets.bottom },
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContainer,
-            { minHeight: SCREEN_H - insets.top - insets.bottom },
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              width: SCREEN_W,
+              height: SCREEN_H,
+              opacity: animOpacity,
+              transform: [{ translateX: animTranslateX }],
+            },
           ]}
-          keyboardShouldPersistTaps="handled"
         >
-          <Animated.View
-            style={[
-              styles.card,
-              {
-                width: SCREEN_W,
-                height: SCREEN_H,
-                opacity: animOpacity,
-                transform: [{ translateX: animTranslateX }],
-              },
-            ]}
-          >
-            {/* 🎨 Decorations */}
-            <View style={styles.topLeftBlack} />
-            <View style={styles.topLeftRed} />
-            <View style={styles.topRightCircle} />
+          {/* Decorations */}
+          <View style={styles.topLeftBlack} />
+          <View style={styles.topLeftRed} />
+          <View style={styles.topRightCircle} />
 
-            <View style={styles.form}>
-              <Text style={styles.header}>Fill Up Form</Text>
+          <View style={styles.form}>
+            <Text style={styles.header}>Fill Up Form</Text>
 
-              <Text style={styles.label}>Name:</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter your name"
-                style={styles.input}
-              />
+            <Text style={styles.label}>Name:</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+              style={styles.input}
+            />
 
-              <Text style={styles.label}>Email:</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+            <Text style={styles.label}>Email:</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your email"
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-              <Text style={styles.label}>Gender:</Text>
-              <TextInput
-                value={gender}
-                onChangeText={setGender}
-                placeholder="Male / Female / Other"
-                style={[styles.input, styles.genderInput]}
-              />
+            <Text style={styles.label}>Gender:</Text>
+            <TextInput
+              value={gender}
+              onChangeText={setGender}
+              placeholder="Male / Female / Other"
+              style={[styles.input, styles.genderInput]}
+            />
 
-              <TouchableOpacity
-                style={[styles.proceedBtn, saving && { opacity: 0.8 }]}
-                onPress={onProceed}
-                disabled={saving}
-                activeOpacity={0.85}
+            <TouchableOpacity
+              style={[styles.proceedBtn, saving && { opacity: 0.8 }]}
+              onPress={onProceed}
+              disabled={saving}
+              activeOpacity={0.85}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.proceedText}>Proceed</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Animated toast message */}
+            {message ? (
+              <Animated.View
+                style={{
+                  opacity: messageOpacity,
+                  transform: [{ translateY: messageTranslateY }],
+                }}
               >
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.proceedText}>Proceed</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                <Text
+                  style={[
+                    styles.message,
+                    messageType === "error"
+                      ? styles.messageError
+                      : styles.messageSuccess,
+                  ]}
+                >
+                  {message}
+                </Text>
+              </Animated.View>
+            ) : null}
+          </View>
 
-            <View style={styles.bottomRightBlack} />
-            <View style={styles.bottomRightRed} />
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          <View style={styles.bottomRightBlack} />
+          <View style={styles.bottomRightRed} />
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -156,24 +249,20 @@ const BOX = 80;
 const SAFE_BG = "#f2f2f4";
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: SAFE_BG },
-  flex: { flex: 1 },
+  flex: { flex: 1, backgroundColor: SAFE_BG },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  // full-screen white area
   card: {
     backgroundColor: "#fff",
-    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    shadowColor: "transparent",
     elevation: 1,
   },
-  // decorations
+  // Decorations
   topLeftBlack: {
     position: "absolute",
     top: 80,
@@ -181,7 +270,6 @@ const styles = StyleSheet.create({
     width: BOX - 1,
     height: BOX - 1,
     backgroundColor: "#000",
-    zIndex: 1,
   },
   topLeftRed: {
     position: "absolute",
@@ -190,7 +278,6 @@ const styles = StyleSheet.create({
     width: BOX,
     height: BOX,
     backgroundColor: "#ff4d4d",
-    zIndex: 2,
   },
   topRightCircle: {
     position: "absolute",
@@ -200,7 +287,6 @@ const styles = StyleSheet.create({
     height: BOX,
     backgroundColor: "#ff0000",
     borderBottomLeftRadius: BOX,
-    zIndex: 1,
   },
   bottomRightBlack: {
     position: "absolute",
@@ -209,7 +295,6 @@ const styles = StyleSheet.create({
     width: BOX - 1,
     height: BOX - 1,
     backgroundColor: "#000",
-    zIndex: 1,
   },
   bottomRightRed: {
     position: "absolute",
@@ -218,9 +303,8 @@ const styles = StyleSheet.create({
     width: BOX - 1,
     height: BOX - 1,
     backgroundColor: "#ff4d4d",
-    zIndex: 2,
   },
-  // form
+  // Form
   form: {
     width: "85%",
     marginTop: 100,
@@ -255,4 +339,12 @@ const styles = StyleSheet.create({
     marginTop: 190,
   },
   proceedText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  message: {
+    marginTop: 14,
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  messageSuccess: { color: "#107C10" },
+  messageError: { color: "#C92A2A" },
 });
