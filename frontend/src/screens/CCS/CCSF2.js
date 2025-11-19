@@ -28,47 +28,81 @@ const BACK = require('../../../assets/back.png');
 
 const DATA = [
   {
-    title: 'Bachelor of Science in Computer Science',
-    subtitle: 'Specialization in Cybersecurity',
-    desc:
-      'Design secure systems, analyze threats, and craft resilient software — this track balances deep theory with hands-on defensive practice.',
+    title: 'Bachelor of Science in Computer Science with Specialization in Cybersecurity',
+    subtitle: 'Cyber & Security',
+    desc: 'Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions for modern technology challenges.',
   },
   {
-    title: 'Software Engineering',
-    subtitle: 'Apps & Systems',
-    desc: 'Build production-ready software focusing on quality, testing and architecture.',
+    title: 'Bachelor of Science in Computer Science with Specialization in Data & Analytics',
+    subtitle: 'Data & Analytics',
+    desc: 'Computer Science program specializing in Data Science, focusing on programming, analytics, AI, and machine learning.',
   },
   {
-    title: 'Information Technology',
-    subtitle: 'Networks & Ops',
-    desc: 'Infrastructure, deployment, and operational excellence for real-world systems.',
+    title: 'Bachelor of Science in Information Technology with Specialization in Mobile and Web Development',
+    subtitle: 'Mobile & Web',
+    desc: 'IT program specializing in mobile and web development, focusing on apps, websites, and modern technologies.',
+  },
+  {
+    title: 'Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation',
+    subtitle: 'Media & Animation',
+    desc: 'IT program specializing in Multimedia Arts and Animation, teaching digital design, animation, and creative media production.',
+  },
+  {
+    title: 'Bachelor of Science in Information Technology with Specialization in Network and System Administration',
+    subtitle: 'Networks & Systems',
+    desc: 'IT program specializing in Network and System Administration, managing and securing computer systems.',
   },
 ];
 
 export default function CCSF2Artistic({ navigation }) {
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
+  // activeDot controls which bottom circle is visually active (only changes on tap)
+  const [activeDot, setActiveDot] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current; // for logo parallax
-  const pulse = useRef(new Animated.Value(0)).current; // for subtle breathing
+  const pulse = useRef(new Animated.Value(0)).current; // for subtle breathing on cards
+
+  // Animated values for the three dots (0 = inactive, 1 = active)
+  const dotAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
 
   useEffect(() => {
+    // breathing animation for card logo pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
       ])
     ).start();
+
+    // initialize first dot active
+    Animated.timing(dotAnims[activeDot], { toValue: 1, duration: 350, useNativeDriver: true }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // whenever activeDot changes, animate all dotAnims accordingly
+    const anims = dotAnims.map((val, i) =>
+      Animated.timing(val, {
+        toValue: i === activeDot ? 1 : 0,
+        duration: i === activeDot ? 350 : 240,
+        useNativeDriver: true,
+      })
+    );
+    Animated.parallel(anims).start();
+  }, [activeDot, dotAnims]);
 
   function onMomentumScrollEnd(e) {
     const x = e.nativeEvent.contentOffset.x;
     const ix = Math.round(x / VISIBLE_W);
     setIndex(ix);
+    // activeDot remains controlled by taps (so scrolling won't change which dot is visually active)
   }
 
   function go(i) {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTo({ x: i * VISIBLE_W, animated: true });
+    // we do NOT change activeDot here automatically to keep circles independent,
+    // but we still allow code to programmatically scroll using go(i).
   }
 
   function handleScroll(e) {
@@ -78,6 +112,14 @@ export default function CCSF2Artistic({ navigation }) {
   }
 
   const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.03] });
+
+  // NOTE: updated — handleDotTap no longer scrolls the carousel.
+  // It only updates the visual active dot (decoupled behavior).
+  function handleDotTap(i) {
+    // only set visual active state — DO NOT scroll the cards
+    setActiveDot(i);
+    // (Optional) you could trigger a quick tap animation here if you'd like.
+  }
 
   return (
     <SafeAreaView style={s.screen}>
@@ -117,11 +159,24 @@ export default function CCSF2Artistic({ navigation }) {
 
             return (
               <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
-                <LinearGradient colors={["#ff6161", "#8b0000"]} style={s.card}>
+                <LinearGradient colors={['#ff6161', '#8b0000']} style={s.card}>
                   {/* parallax logo (moves slightly opposite of scroll) */}
                   <Animated.Image
                     source={LOGO}
-                    style={[s.cardLogo, { transform: [{ translateX: parallax.interpolate({ inputRange: [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W], outputRange: [50, 0, -50] }) }, { scale: pulseScale }] }]}
+                    style={[
+                      s.cardLogo,
+                      {
+                        transform: [
+                          {
+                            translateX: parallax.interpolate({
+                              inputRange: [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W],
+                              outputRange: [50, 0, -50],
+                            }),
+                          },
+                          { scale: pulseScale },
+                        ],
+                      },
+                    ]}
                     resizeMode="contain"
                   />
 
@@ -137,18 +192,50 @@ export default function CCSF2Artistic({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* fixed bottom controls */}
+      {/* fixed bottom controls (3 interactive circles — independent but clickable) */}
       <View style={s.bottomWrap} pointerEvents="box-none">
         <View style={s.pagerBox}>
-          {DATA.map((_, i) => (
-            <TouchableOpacity key={i} onPress={() => go(i)} activeOpacity={0.9}>
-              <Animated.View style={[s.outerRing, index === i && s.outerRingActive]}>
-                <View style={s.innerDot}>
-                  <Image source={LOGO} style={s.dotLogo} />
-                </View>
-              </Animated.View>
-            </TouchableOpacity>
-          ))}
+          {[0, 1, 2].map((i) => {
+            // animated style based on dotAnims[i] (0 -> idle, 1 -> active)
+            const translateY = dotAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
+            const scale = dotAnims[i].interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
+            const glowOpacity = dotAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, 0.42] });
+            const shadowOpacity = dotAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, 0.22] });
+
+            return (
+              <TouchableOpacity
+                key={i}
+                onPress={() => handleDotTap(i)}
+                activeOpacity={0.9}
+                style={{ alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Animated.View
+                  style={[
+                    s.outerRing,
+                    {
+                      transform: [{ translateY }, { scale }],
+                      shadowOpacity, // on iOS shadowOpacity will use this
+                    },
+                  ]}
+                >
+                  {/* glow / halo behind the inner dot */}
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      s.dotGlow,
+                      {
+                        opacity: glowOpacity,
+                        transform: [{ scale: dotAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.25] }) }],
+                      },
+                    ]}
+                  />
+                  <View style={s.innerDot}>
+                    <Image source={LOGO} style={s.dotLogo} />
+                  </View>
+                </Animated.View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </SafeAreaView>
@@ -159,9 +246,9 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
   bg: { ...StyleSheet.absoluteFillObject },
   layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.12 },
+  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
 
-  back: { position: 'absolute', right: 14, top: 14, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
   carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
@@ -169,18 +256,42 @@ const s = StyleSheet.create({
   cardContainer: { width: CARD_W, marginRight: CARD_GAP },
   card: { borderRadius: 20, padding: 22, minHeight: '100%', overflow: 'hidden', alignItems: 'flex-start' },
 
-  cardLogo: { position: 'absolute', width: '72%', height: 180, opacity: 0.12, top: 18, right: -10 },
+  cardLogo: { position: 'absolute', width: '80%', height: 210, opacity: 0.60, top: 45, right: 19 },
 
-  textBlock: { marginTop: 120 },
-  h1: { color: '#fff', fontSize: 22, fontWeight: '800', lineHeight: 30 },
+  textBlock: { marginTop: 90 },
+  h1: { color: '#fff', fontSize: 40, fontWeight: '800', lineHeight: 38, marginTop: 50 },
   h2: { color: '#fff', fontSize: 14, fontWeight: '700', marginTop: 6, opacity: 0.95 },
-  p: { color: 'rgba(255,255,255,0.95)', marginTop: 14, lineHeight: 20 },
+  p: { color: 'rgba(255,255,255,0.95)', marginTop: 10, lineHeight: 15, fontWeight: '400' },
 
   bottomWrap: { position: 'absolute', left: 0, right: 0, bottom: 18, alignItems: 'center' },
   pagerBox: { width: Math.min(380, width - 24), height: 84, borderRadius: 14, backgroundColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 12, elevation: 10 },
 
-  outerRing: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  outerRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    // base shadow, will be enhanced via animated shadowOpacity on active
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  // kept for backward compatibility if you want the static transform style
   outerRingActive: { transform: [{ translateY: -6 }], shadowColor: '#000', shadowOpacity: 0.22, shadowOffset: { width: 0, height: 6 }, shadowRadius: 8, elevation: 10 },
+
+  // glow behind dot (animated opacity + scale)
+  dotGlow: {
+    position: 'absolute',
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: 'rgba(183,28,28,0.14)',
+    zIndex: -1,
+  },
+
   innerDot: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#b71c1c', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#a11a1a' },
   dotLogo: { width: 28, height: 28, tintColor: '#5f0000' },
 });
