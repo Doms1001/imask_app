@@ -1,4 +1,5 @@
-// frontend/src/screens/CCS/CCSF2.js
+// CCJF2.js — College of Criminal Justice carousel (Gray & Black theme)
+
 import React, { useRef, useState, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -22,51 +23,66 @@ const CARD_GAP = 18;
 const CARD_W = CONTAINER_W;
 const VISIBLE_W = CARD_W + CARD_GAP;
 
-const LOGO = require('../../../assets/CCSlogo.png');
+const LOGO = require('../../../assets/CCJlogo.png');
 const BACK = require('../../../assets/back.png');
 
 const DATA = [
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Cybersecurity',
-    subtitle: 'Cyber & Security',
-    desc: 'Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions for modern technology challenges.',
+    title: 'Bachelor of Science in Criminology',
+    subtitle: 'Crime prevention',
+    desc: 'The BSCrim program trains students in law enforcement, forensic science, criminal justice, and correctional management for safety careers.',
   },
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Data & Analytics',
-    subtitle: 'Data & Analytics',
-    desc: 'Computer Science program specializing in Data Science, focusing on programming, analytics, AI, and machine learning.',
+    title: 'N/A ',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Mobile and Web Development',
-    subtitle: 'Mobile & Web',
-    desc: 'IT program specializing in mobile and web development, focusing on apps, websites, and modern technologies.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation',
-    subtitle: 'Media & Animation',
-    desc: 'IT program specializing in Multimedia Arts and Animation, teaching digital design, animation, and creative media production.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Network and System Administration',
-    subtitle: 'Networks & Systems',
-    desc: 'IT program specializing in Network and System Administration, managing and securing computer systems.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
 ];
 
-export default function CCSF2({ navigation }) {
+export default function CCJF2({ navigation }) {
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef(null);
 
   useEffect(() => {
-    Animated.loop(
+    // pulse loop (store ref so we can stop on unmount)
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
       ])
-    ).start();
-  }, [pulse]);
+    );
+    loopRef.current = loop;
+    loop.start();
+
+    return () => {
+      loopRef.current && typeof loopRef.current.stop === 'function' && loopRef.current.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function navSafe(route) {
+    if (navigation && typeof navigation.navigate === 'function') {
+      navigation.navigate(route);
+    }
+  }
 
   function onMomentumScrollEnd(e) {
     const x = e.nativeEvent.contentOffset.x;
@@ -83,13 +99,21 @@ export default function CCSF2({ navigation }) {
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'light-content'} />
 
-      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
+      {/* subtle page background gradient */}
+      <LinearGradient colors={['#121212', '#1e1e1e']} style={s.bg} />
+
+      {/* decorative shapes */}
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('CCSF1')}>
+      <TouchableOpacity
+        style={s.back}
+        onPress={() => navSafe('CCJF1')}
+        accessible
+        accessibilityLabel="Back"
+      >
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
@@ -115,7 +139,7 @@ export default function CCSF2({ navigation }) {
 
             return (
               <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
-                <LinearGradient colors={['#ff6161', '#8b0000']} style={s.card}>
+                <LinearGradient colors={['#4a4a4a', '#0b0b0b']} style={s.card}>
                   <Animated.Image
                     source={LOGO}
                     style={[
@@ -125,18 +149,19 @@ export default function CCSF2({ navigation }) {
                           {
                             translateX: parallax.interpolate({
                               inputRange: [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W],
-                              outputRange: [50, 0, -50],
+                              outputRange: [60, 0, -60],
                             }),
                           },
                           { scale: pulseScale },
                         ],
+                        opacity: 0.65,
                       },
                     ]}
                     resizeMode="contain"
                   />
 
                   <View style={s.textBlock}>
-                    <Text style={s.h1}>{it.title}</Text>
+                    <Text style={s.h1} numberOfLines={2}>{it.title}</Text>
                     <Text style={s.h2}>{it.subtitle}</Text>
                     <Text style={s.p}>{it.desc}</Text>
                   </View>
@@ -148,29 +173,61 @@ export default function CCSF2({ navigation }) {
       </View>
 
       {/* BottomPager: left circle rises on this screen */}
-      <BottomPager navigation={navigation} activeIndex={index} targets={['CCSF2', 'CCSF3', 'CCSF4']} />
+      <BottomPager navigation={navigation} activeIndex={index} targets={['CCJF2', 'CCJF3', 'CCJF4']} />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  screen: { flex: 1, backgroundColor: '#0b0b0b', alignItems: 'center' },
   bg: { ...StyleSheet.absoluteFillObject },
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
+  layerTopRight: {
+    position: 'absolute',
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    transform: [{ rotate: '8deg' }],
+  },
+  layerBottomLeft: {
+    position: 'absolute',
+    left: -60,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    opacity: 0.6,
+  },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
-  backImg: { width: 34, height: 34, tintColor: '#fff' },
+  back: { position: 'absolute', right: 14, top: Platform.OS === 'android' ? 14 : 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  backImg: { width: 34, height: 34, tintColor: '#e6e6e6' },
 
   carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
-  scrollContent: { alignItems: 'center', paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2 },
+  scrollContent: { alignItems: 'center', paddingHorizontal: Math.max(12, (width - CARD_W) / 2 - CARD_GAP / 2) },
   cardContainer: { width: CARD_W, marginRight: CARD_GAP },
-  card: { borderRadius: 20, padding: 22, minHeight: '100%', overflow: 'hidden', alignItems: 'flex-start' },
 
-  cardLogo: { position: 'absolute', width: '80%', height: 210, opacity: 0.60, top: 45, right: 19 },
+  card: {
+    borderRadius: 20,
+    padding: 22,
+    minHeight: '100%',
+    overflow: 'hidden',
+    alignItems: 'flex-start',
+    backgroundColor: 'transparent',
+    // subtle inner shadow feel
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 14,
+  },
 
-  textBlock: { marginTop: 90 },
-  h1: { color: '#fff', fontSize: 40, fontWeight: '800', lineHeight: 38, marginTop: 50 },
-  h2: { color: '#fff', fontSize: 14, fontWeight: '700', marginTop: 6, opacity: 0.95 },
-  p: { color: 'rgba(255,255,255,0.95)', marginTop: 10, lineHeight: 15, fontWeight: '400' },
+  cardLogo: { position: 'absolute', width: '78%', height: 200, top: 34, right: 12 },
+
+  textBlock: { marginTop: 110 },
+  h1: { color: '#f5f5f5', fontSize: 35, fontWeight: '800', lineHeight: 35, marginTop: 90},
+  h2: { color: '#d0d0d0', fontSize: 13, fontWeight: '700', marginTop: 8, opacity: 0.95 },
+  p: { color: 'rgba(210,210,210,0.92)', marginTop: 10, lineHeight: 18, fontWeight: '400' },
 });

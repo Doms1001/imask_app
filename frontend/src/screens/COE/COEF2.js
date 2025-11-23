@@ -22,38 +22,38 @@ const CARD_GAP = 18;
 const CARD_W = CONTAINER_W;
 const VISIBLE_W = CARD_W + CARD_GAP;
 
-const LOGO = require('../../../assets/CCSlogo.png');
+const LOGO = require('../../../assets/COElogo.png');
 const BACK = require('../../../assets/back.png');
 
 const DATA = [
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Cybersecurity',
-    subtitle: 'Cyber & Security',
-    desc: 'Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions for modern technology challenges.',
+    title: 'Bachelor of Science in Computer Engineering',
+    subtitle: 'Tech innovation',
+    desc: 'The BSCpE program trains students to develop computer systems, hardware, software, and solutions for modern technological challenges.',
   },
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Data & Analytics',
-    subtitle: 'Data & Analytics',
-    desc: 'Computer Science program specializing in Data Science, focusing on programming, analytics, AI, and machine learning.',
+    title: 'Bachelor of Science in Industrial Engineering',
+    subtitle: 'Process optimization',
+    desc: 'The BSIE program trains students in production planning, operations research, and quality management for industry efficiency improvements.',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Mobile and Web Development',
-    subtitle: 'Mobile & Web',
-    desc: 'IT program specializing in mobile and web development, focusing on apps, websites, and modern technologies.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation',
-    subtitle: 'Media & Animation',
-    desc: 'IT program specializing in Multimedia Arts and Animation, teaching digital design, animation, and creative media production.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Network and System Administration',
-    subtitle: 'Networks & Systems',
-    desc: 'IT program specializing in Network and System Administration, managing and securing computer systems.',
+    title: 'N/A',
+    subtitle: 'N/A',
+    desc: 'N/A',
   },
 ];
 
-export default function CCSF2({ navigation }) {
+export default function COEF2({ navigation }) {
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current;
@@ -89,7 +89,7 @@ export default function CCSF2({ navigation }) {
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('CCSF1')}>
+      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('COEF1')}>
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
@@ -148,7 +148,7 @@ export default function CCSF2({ navigation }) {
       </View>
 
       {/* BottomPager: left circle rises on this screen */}
-      <BottomPager navigation={navigation} activeIndex={index} targets={['CCSF2', 'CCSF3', 'CCSF4']} />
+      <BottomPager navigation={navigation} activeIndex={index} targets={['COEF2', 'COEF3', 'COEF4']} />
     </SafeAreaView>
   );
 }

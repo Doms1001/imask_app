@@ -1,4 +1,4 @@
-// CBAF9.js - BIG GRADIENT RECTANGLE with embedded FAQ inside the card (Firestore & images removed)
+// COAF9.js - BIG GRADIENT RECTANGLE with embedded FAQ inside the card (Firestore & images removed)
 import React, { useRef, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -21,22 +21,23 @@ const BACK = require('../../../assets/back.png');
 // Local screenshot (kept as a visual reference inside the card)
 const FAQ_IMG_URI = 'file:///mnt/data/572f4ca4-169c-4ab3-99b4-78368d7ae56d.png';
 
-export default function CBAF9({ navigation }) {
+export default function COAF9({ navigation }) {
   const entrance = useRef(new Animated.Value(0)).current;
   const shimmer = useRef(new Animated.Value(-1)).current;
   const entranceRef = useRef(null);
   const shimmerLoopRef = useRef(null);
 
   useEffect(() => {
-    console.log('CBAF9 mounted (static FAQ card)');
+    console.log('COAF9 mounted (static FAQ card)');
 
-    entranceRef.current = Animated.timing(entrance, { toValue: 1, duration: 600, useNativeDriver: true });
+    // Use JS-driven animations to avoid native handoff issues
+    entranceRef.current = Animated.timing(entrance, { toValue: 1, duration: 600, useNativeDriver: false });
     entranceRef.current.start();
 
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: -1, duration: 0, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 1, duration: 1400, useNativeDriver: false }),
+        Animated.timing(shimmer, { toValue: -1, duration: 0, useNativeDriver: false }),
       ])
     );
     shimmerLoopRef.current = loop;
@@ -95,9 +96,6 @@ export default function CBAF9({ navigation }) {
           {/* Content inside the card */}
           <View style={m.innerContent}>
             <ScrollView contentContainerStyle={m.scrollInner} showsVerticalScrollIndicator={false}>
-              {/* Screenshot reference at top */}
-             
-
               {/* FAQ */}
               <View style={m.faqCard}>
                 <Text style={m.faqTitle}>Frequently Asked Questions</Text>
@@ -257,17 +255,6 @@ const m = StyleSheet.create({
 
   scrollInner: {
     paddingBottom: 24,
-  },
-
-  screenshotWrap: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  screenshot: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#fff',
   },
 
   faqCard: {

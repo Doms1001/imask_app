@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ZoomImage from "../components/ZoomImage";
@@ -57,6 +58,34 @@ export default function OnboardingScreen({ navigation }) {
     ]).start();
   }, [animOpacity, animTranslateX]);
 
+  // ===== Hidden admin-tap logic (5 taps) =====
+  const tapCounter = useRef(0);
+  const tapTimeout = useRef(null);
+
+  const handleSecretTap = () => {
+    // increment
+    tapCounter.current = (tapCounter.current || 0) + 1;
+
+    // if reached 5 taps -> navigate to AdminScreen (changed)
+    if (tapCounter.current >= 5) {
+      tapCounter.current = 0;
+      if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+        tapTimeout.current = null;
+      }
+      navigation.navigate("AdminScreen"); // <-- updated target
+      return;
+    }
+
+    // reset if no further taps within 1.5s
+    if (tapTimeout.current) clearTimeout(tapTimeout.current);
+    tapTimeout.current = setTimeout(() => {
+      tapCounter.current = 0;
+      tapTimeout.current = null;
+    }, 1500);
+  };
+  // ============================================
+
   if (!fontsLoaded) {
     return (
       <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
@@ -93,6 +122,17 @@ export default function OnboardingScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
+      {/* Invisible admin circle in top-right (does NOT affect layout) */}
+      <TouchableOpacity
+        onPress={handleSecretTap}
+        activeOpacity={1}
+        style={[
+          styles.hiddenButton,
+          // position it just below the safe area so it won't overlap status bar icons
+          { top: insets.top + 8, right: 16 },
+        ]}
+      />
+
       <View style={styles.container}>
         <Animated.View
           style={[
@@ -212,4 +252,14 @@ const styles = StyleSheet.create({
     fontFamily: "Lato_900Black",
   },
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  // invisible circle for admin taps (doesn't change layout)
+  hiddenButton: {
+    position: "absolute",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    zIndex: 9999,
+    // backgroundColor: 'rgba(255,0,0,0.15)', // uncomment when debugging
+  },
 });

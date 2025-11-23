@@ -1,4 +1,4 @@
-// frontend/src/screens/CCS/CCSF2.js
+// CBAF2.js — Yellow / Orange Gradient Theme (keeps animations & behavior)
 import React, { useRef, useState, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -22,60 +22,68 @@ const CARD_GAP = 18;
 const CARD_W = CONTAINER_W;
 const VISIBLE_W = CARD_W + CARD_GAP;
 
-const LOGO = require('../../../assets/CCSlogo.png');
+const LOGO = require('../../../assets/CBAlogo.png');
 const BACK = require('../../../assets/back.png');
 
 const DATA = [
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Cybersecurity',
-    subtitle: 'Cyber & Security',
-    desc: 'Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions for modern technology challenges.',
+    title: 'Bachelor of Science in Public Administration',
+    subtitle: 'Government management',
+    desc: 'The BSPA program develops governance, policy, and management skills for future leaders committed to transparent public service.',
   },
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Data & Analytics',
-    subtitle: 'Data & Analytics',
-    desc: 'Computer Science program specializing in Data Science, focusing on programming, analytics, AI, and machine learning.',
+    title: 'Bachelor of Science in Business Administration Major in Financial Management',
+    subtitle: 'Financial leadership',
+    desc: 'The BSBA-FM program develops financial analysis, investment, and corporate finance skills for careers in banking and business.',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Mobile and Web Development',
-    subtitle: 'Mobile & Web',
-    desc: 'IT program specializing in mobile and web development, focusing on apps, websites, and modern technologies.',
+    title: 'Bachelor of Science in Business Administration Major in Hotel Resource Management',
+    subtitle: 'Hospitality management',
+    desc: 'The BSBA-HRM program trains students in hotel operations, customer service, and hospitality management for tourism careers.',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation',
-    subtitle: 'Media & Animation',
-    desc: 'IT program specializing in Multimedia Arts and Animation, teaching digital design, animation, and creative media production.',
+    title: 'Bachelor of Science in Business Administration Major in Marketing Management',
+    subtitle: 'Market strategy',
+    desc: 'The BSBA-MM program develops marketing skills in research, consumer behavior, advertising, sales, and strategic brand management.',
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Network and System Administration',
-    subtitle: 'Networks & Systems',
-    desc: 'IT program specializing in Network and System Administration, managing and securing computer systems.',
+    title: 'Bachelor of Science in Real Estate Management',
+    subtitle: 'Property management',
+    desc: 'The BSREM program trains students in development, appraisal, brokerage, and investment for real estate profession readiness.',
   },
 ];
 
-export default function CCSF2({ navigation }) {
+export default function CBAF2({ navigation }) {
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  const pulseLoopRef = useRef(null);
 
   useEffect(() => {
-    Animated.loop(
+    // Create a looped pulse animation and keep a ref to stop on unmount
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    pulseLoopRef.current = loop;
+    loop.start();
+
+    return () => {
+      pulseLoopRef.current && pulseLoopRef.current.stop && pulseLoopRef.current.stop();
+    };
   }, [pulse]);
 
   function onMomentumScrollEnd(e) {
-    const x = e.nativeEvent.contentOffset.x;
+    const x = e.nativeEvent.contentOffset.x || 0;
     const ix = Math.round(x / VISIBLE_W);
-    setIndex(ix);
+    setIndex(Math.max(0, Math.min(ix, DATA.length - 1)));
   }
 
   function handleScroll(e) {
-    const x = e.nativeEvent.contentOffset.x;
+    const x = e.nativeEvent.contentOffset.x || 0;
     parallax.setValue(x);
   }
 
@@ -85,11 +93,19 @@ export default function CCSF2({ navigation }) {
     <SafeAreaView style={s.screen}>
       <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
 
-      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
-      <View style={s.layerTopRight} />
-      <View style={s.layerBottomLeft} />
+      {/* subtle warm background gradient */}
+      <LinearGradient colors={['#fff9f0', '#fff6ee']} style={s.bg} />
 
-      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('CCSF1')}>
+      {/* decorative gradient shapes */}
+      <LinearGradient colors={['#FFE082', '#FFB300']} start={[0,0]} end={[1,1]} style={s.layerTopRight} />
+      <LinearGradient colors={['#FFD54F', '#FF8A00']} start={[0,0]} end={[1,1]} style={s.layerBottomLeft} />
+
+      <TouchableOpacity
+        style={s.back}
+        onPress={() => navigation?.navigate && navigation.navigate('CBAF1')}
+        accessible
+        accessibilityLabel="Back"
+      >
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
@@ -101,12 +117,14 @@ export default function CCSF2({ navigation }) {
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           snapToInterval={VISIBLE_W}
-          contentContainerStyle={s.scrollContent}
+          snapToAlignment="start"
+          contentContainerStyle={[s.scrollContent, { paddingHorizontal: Math.max(12, (width - CARD_W) / 2 - CARD_GAP / 2) }]}
           onMomentumScrollEnd={onMomentumScrollEnd}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: parallax } } }], {
             useNativeDriver: false,
             listener: handleScroll,
           })}
+          scrollEventThrottle={16}
         >
           {DATA.map((it, i) => {
             const input = [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W];
@@ -115,7 +133,7 @@ export default function CCSF2({ navigation }) {
 
             return (
               <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
-                <LinearGradient colors={['#ff6161', '#8b0000']} style={s.card}>
+                <LinearGradient colors={['#FFD54F', '#FF8A00']} start={[0,0]} end={[1,1]} style={s.card}>
                   <Animated.Image
                     source={LOGO}
                     style={[
@@ -136,7 +154,7 @@ export default function CCSF2({ navigation }) {
                   />
 
                   <View style={s.textBlock}>
-                    <Text style={s.h1}>{it.title}</Text>
+                    <Text style={s.h1} numberOfLines={2}>{it.title}</Text>
                     <Text style={s.h2}>{it.subtitle}</Text>
                     <Text style={s.p}>{it.desc}</Text>
                   </View>
@@ -148,7 +166,7 @@ export default function CCSF2({ navigation }) {
       </View>
 
       {/* BottomPager: left circle rises on this screen */}
-      <BottomPager navigation={navigation} activeIndex={index} targets={['CCSF2', 'CCSF3', 'CCSF4']} />
+      <BottomPager navigation={navigation} activeIndex={index} targets={['CBAF2', 'CBAF3', 'CBAF4']} />
     </SafeAreaView>
   );
 }
@@ -156,21 +174,35 @@ export default function CCSF2({ navigation }) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
   bg: { ...StyleSheet.absoluteFillObject },
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  // gradient decorative shapes (positioned)
+  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18 },
+  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, opacity: 0.9 },
+
+  back: { position: 'absolute', right: 14, top: Platform.OS === 'android' ? 14 : 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
   carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
-  scrollContent: { alignItems: 'center', paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2 },
+  scrollContent: { alignItems: 'center' },
   cardContainer: { width: CARD_W, marginRight: CARD_GAP },
-  card: { borderRadius: 20, padding: 22, minHeight: '100%', overflow: 'hidden', alignItems: 'flex-start' },
+  card: {
+    borderRadius: 20,
+    padding: 22,
+    minHeight: '100%',
+    overflow: 'hidden',
+    alignItems: 'flex-start',
+    // subtle warm shadow
+    shadowColor: '#8f5e00',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 20,
+    elevation: 10,
+  },
 
   cardLogo: { position: 'absolute', width: '80%', height: 210, opacity: 0.60, top: 45, right: 19 },
 
   textBlock: { marginTop: 90 },
-  h1: { color: '#fff', fontSize: 40, fontWeight: '800', lineHeight: 38, marginTop: 50 },
+  h1: { color: '#fff', fontSize: 30, fontWeight: '800', lineHeight: 34, marginTop: 150 },
   h2: { color: '#fff', fontSize: 14, fontWeight: '700', marginTop: 6, opacity: 0.95 },
-  p: { color: 'rgba(255,255,255,0.95)', marginTop: 10, lineHeight: 15, fontWeight: '400' },
+  p: { color: 'rgba(255,255,255,0.95)', marginTop: 10, lineHeight: 18, fontWeight: '400' },
 });
