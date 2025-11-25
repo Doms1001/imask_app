@@ -7,6 +7,8 @@ import OnboardingScreen from "../screens/OnboardingScreen";
 import FillupScreen from "../screens/FillupScreen";
 import WelcomingDept from "../screens/welcomingdept";
 import Departments from "../screens/Departments";
+import AdminLogIn from "../screens/AdminLogIn"; // ✅ NEW
+import AdminScreen from "../screens/AdminScreen";
 
 /* ================================
    CCS (1–10)
@@ -108,12 +110,13 @@ export default function AppNavigator() {
         {/* Core flows */}
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Fillup" component={FillupScreen} />
-
-        {/* Register WelcomingDept under both casings */}
         <Stack.Screen name="WelcomingDept" component={WelcomingDept} />
         <Stack.Screen name="welcomingdept" component={WelcomingDept} />
-
         <Stack.Screen name="Departments" component={Departments} />
+
+        {/* ✅ Admin login screen */}
+        <Stack.Screen name="AdminLogIn" component={AdminLogIn} />
+        <Stack.Screen name="AdminScreen" component={AdminScreen} />
 
         {/* CCS */}
         <Stack.Screen name="CCSF1" component={CCSF1} />

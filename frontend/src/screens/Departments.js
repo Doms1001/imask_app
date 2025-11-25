@@ -4,67 +4,156 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
   FlatList,
   Pressable,
   Animated,
-  Platform,
+  useWindowDimensions,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Easing } from "react-native";
 
-const { width, height } = Dimensions.get("window");
-const CARD_W = Math.min(width * 0.92, 880);
-const CARD_H = 118;
-const RADIUS = 16;
-const VERT_MARGIN = 12;
+import COAlogo from "../../assets/COAlogo.png";
+import CCSlogo from "../../assets/CCSlogo.png";
+import CBAlogo from "../../assets/CBAlogo.png";
+import CCJlogo from "../../assets/CCJlogo.png";
+import COElogo from "../../assets/COElogo.png";
+import CASlogo from "../../assets/CASlogo.png";
 
 const DEPARTMENTS = [
-  { key: "COA", title: "College of Accountancy" },
-  { key: "CCS", title: "College of Computer Studies" },
-  { key: "CBA", title: "College of Business Administration" },
-  { key: "CCJ", title: "College of Criminal Justice" },
-  { key: "COE", title: "College of Engineering" },
-  { key: "CAS", title: "College of Arts & Science" },
+  {
+    key: "COA",
+    title: "College of Accountancy",
+    logo: COAlogo,
+    stripColors: ["#FFE57F", "#FFC107", "#FFB300"], // yellow gradient
+    glowColor: "rgba(255, 214, 0, 0.6)",
+  },
+  {
+    key: "CCS",
+    title: "College of Computer Studies",
+    logo: CCSlogo,
+    stripColors: ["#FF3B3B", "#FF8A2B", "#FFFFFF"], // red → orange → white
+    glowColor: "rgba(255, 82, 82, 0.55)",
+  },
+  {
+    key: "CBA",
+    title: "College of Business Administration",
+    logo: CBAlogo,
+    stripColors: ["#FFD700", "#FFC107", "#B8860B"], // golds
+    glowColor: "rgba(255, 215, 0, 0.6)",
+  },
+  {
+    key: "CCJ",
+    title: "College of Criminal Justice",
+    logo: CCJlogo,
+    stripColors: ["#000000", "#424242", "#9E9E9E"], // black & gray
+    glowColor: "rgba(33, 33, 33, 0.55)",
+  },
+  {
+    key: "COE",
+    title: "College of Engineering",
+    logo: COElogo,
+    stripColors: ["#FF8A2B", "#FFFFFF", "#000000"], // orange, white, black
+    glowColor: "rgba(255, 138, 43, 0.6)",
+  },
+  {
+    key: "CAS",
+    title: "College of Arts & Science",
+    logo: CASlogo,
+    stripColors: ["#8E24AA", "#CE93D8", "#FFFFFF"], // violet & white
+    glowColor: "rgba(142, 36, 170, 0.6)",
+  },
 ];
 
 export default function Departments({ navigation }) {
-  const anim = useRef(DEPARTMENTS.map(() => new Animated.Value(0))).current;
-  const blobA = useRef(new Animated.Value(0)).current; // red blob
-  const blobB = useRef(new Animated.Value(0)).current; // black blob
-  const square = useRef(new Animated.Value(0)).current;
+  const { width, height } = useWindowDimensions();
+
+  // responsive helpers
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const scale = width / BASE_W;
+  const vScale = height / BASE_H;
+  const normalize = (size) => size * scale;
+  const vNormalize = (size) => size * vScale;
+  const isTablet = width > 600;
+
+  const CARD_W = Math.min(width * 0.92, 880);
+  const CARD_H = vNormalize(112);
+
+  // animations
+  const cardAnims = useRef(DEPARTMENTS.map(() => new Animated.Value(0))).current;
+  const waveTop = useRef(new Animated.Value(0)).current;
+  const waveBottom = useRef(new Animated.Value(0)).current;
+  const diamond = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
 
   useEffect(() => {
-    // card entrance animation
-    const anims = anim.map((a, i) =>
-      Animated.timing(a, { toValue: 1, duration: 420, delay: i * 60, useNativeDriver: true })
+    // staggered cards
+    const anims = cardAnims.map((a, i) =>
+      Animated.timing(a, {
+        toValue: 1,
+        duration: 450,
+        delay: i * 90,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      })
     );
-    Animated.stagger(50, anims).start();
+    Animated.stagger(70, anims).start();
 
-    // Red blob looping animation
+    // flowing top wave
     Animated.loop(
       Animated.sequence([
-        Animated.timing(blobA, { toValue: 1, duration: 5000, useNativeDriver: true }),
-        Animated.timing(blobA, { toValue: 0, duration: 5000, useNativeDriver: true }),
+        Animated.timing(waveTop, {
+          toValue: 1,
+          duration: 8500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(waveTop, {
+          toValue: 0,
+          duration: 8500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ])
     ).start();
 
-    // Black blob looping animation
+    // flowing bottom wave
     Animated.loop(
       Animated.sequence([
-        Animated.timing(blobB, { toValue: 1, duration: 9000, useNativeDriver: true }),
-        Animated.timing(blobB, { toValue: 0, duration: 9000, useNativeDriver: true }),
+        Animated.timing(waveBottom, {
+          toValue: 1,
+          duration: 9500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(waveBottom, {
+          toValue: 0,
+          duration: 9500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ])
     ).start();
 
-    // Floating square
+    // floating diamond
     Animated.loop(
       Animated.sequence([
-        Animated.timing(square, { toValue: 1, duration: 4000, useNativeDriver: true }),
-        Animated.timing(square, { toValue: 0, duration: 4000, useNativeDriver: true }),
+        Animated.timing(diamond, {
+          toValue: 1,
+          duration: 6500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(diamond, {
+          toValue: 0,
+          duration: 6500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ])
     ).start();
-  }, []);
+  }, [cardAnims, waveTop, waveBottom, diamond]);
 
   const routeMap = {
     COA: "COAF1",
@@ -77,54 +166,90 @@ export default function Departments({ navigation }) {
 
   const handleSelect = (deptKey) => {
     const now = Date.now();
-    if (now - lastTapRef.current < 420) return; // prevent double taps
+    if (now - lastTapRef.current < 420) return;
     lastTapRef.current = now;
 
     const routeName = routeMap[deptKey];
-    if (routeName) {
-      navigation.navigate(routeName);
-      return;
-    }
+    if (routeName) navigation.navigate(routeName);
   };
 
   const renderItem = ({ item, index }) => {
-    const a = anim[index] || new Animated.Value(1);
-    const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [26, 0] });
+    const a = cardAnims[index] || new Animated.Value(1);
+    const translateY = a.interpolate({ inputRange: [0, 1], outputRange: [28, 0] });
     const opacity = a;
+    const scaleCard = a.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] });
 
     return (
-      <Animated.View key={item.key} style={[styles.cardWrap, { opacity, transform: [{ translateY }] }]}>
+      <Animated.View
+        key={item.key}
+        style={[
+          styles.cardWrap,
+          {
+            width: CARD_W,
+            opacity,
+            transform: [{ translateY }, { scale: scaleCard }],
+          },
+        ]}
+      >
         <Pressable
           onPress={() => handleSelect(item.key)}
           android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-          hitSlop={8}
-          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          style={({ pressed }) => [
+            styles.card,
+            {
+              height: CARD_H,
+              borderRadius: normalize(18),
+            },
+            pressed && { transform: [{ scale: 0.98 }], opacity: 0.96 },
+          ]}
         >
-          {/* Left gradient strip (no letter) */}
-          <LinearGradient
-            colors={["#ff3b3b", "#ff8a2b"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.leftBlock}
-          >
-            {/* Glossy shine */}
+          {/* left logo strip with department-specific gradient */}
+          <View style={styles.leftStripWrap}>
             <LinearGradient
-              colors={["rgba(255,255,255,0.4)", "rgba(255,255,255,0.05)"]}
-              start={{ x: 0.1, y: 0 }}
+              colors={item.stripColors}
+              start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.gloss}
+              style={styles.leftStrip}
             />
-          </LinearGradient>
-
-          {/* Main info */}
-          <View style={styles.cardContent}>
-            <Text style={styles.acronym}>{item.key}</Text>
-            <Text style={styles.title}>{item.title}</Text>
+            <View
+              style={[
+                styles.leftStripGlow,
+                { backgroundColor: item.glowColor },
+              ]}
+            />
+            {/* ORIGINAL LOGO COLORS (no tint) */}
+            <Image
+              source={item.logo}
+              resizeMode="contain"
+              style={{
+                width: normalize(50),
+                height: normalize(50),
+              }}
+            />
           </View>
 
+          {/* Main text */}
+          <View style={styles.cardContent}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: normalize(isTablet ? 17 : 15),
+                },
+              ]}
+              numberOfLines={2}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.metaText}>
+              Tap to view its programs and courses
+            </Text>
+          </View>
+
+          {/* Chevron */}
           <View style={styles.chevWrap}>
-            <View style={styles.chevBg}>
-              <Text style={styles.chev}>›</Text>
+            <View style={styles.chevPill}>
+              <Text style={styles.chevText}>›</Text>
             </View>
           </View>
         </Pressable>
@@ -132,76 +257,153 @@ export default function Departments({ navigation }) {
     );
   };
 
-  // Red blob animation values
-  const blobATransX = blobA.interpolate({ inputRange: [0, 1], outputRange: [-44, 44] });
-  const blobATransY = blobA.interpolate({ inputRange: [0, 1], outputRange: [-12, 12] });
-  const blobAScale = blobA.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.18] });
+  // top wave animation
+  const waveTopTranslateX = waveTop.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width * 0.2, width * 0.2],
+  });
+  const waveTopScaleY = waveTop.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
 
-  // Black blob animation
-  const blobBTransX = blobB.interpolate({ inputRange: [0, 1], outputRange: [30, -30] });
-  const blobBTransY = blobB.interpolate({ inputRange: [0, 1], outputRange: [12, -12] });
-  const blobBScale = blobB.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] });
+  // bottom wave animation
+  const waveBottomTranslateX = waveBottom.interpolate({
+    inputRange: [0, 1],
+    outputRange: [width * 0.15, -width * 0.15],
+  });
+  const waveBottomScaleY = waveBottom.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1.05, 0.95],
+  });
 
-  // Square animation
-  const squareTrans = square.interpolate({ inputRange: [0, 1], outputRange: [-10, 10] });
-  const squareScale = square.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.06] });
+  // diamond animation
+  const diamondTranslateY = diamond.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-10, 14],
+  });
+  const diamondScale = diamond.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.96, 1.08],
+  });
+  const diamondRotate = diamond.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["-22deg", "-10deg"],
+  });
 
   return (
     <View style={styles.root}>
+      {/* base white */}
       <View style={styles.whiteBg} />
 
-      {/* RED BLOB (strong & bright) */}
+      {/* Top colored wave */}
       <Animated.View
         style={[
-          styles.blob,
-          styles.blobRed,
-          { transform: [{ translateX: blobATransX }, { translateY: blobATransY }, { scale: blobAScale }], opacity: 0.38 },
+          styles.wave,
+          styles.waveTop,
+          {
+            width: width * 1.5,
+            height: height * 0.28,
+            transform: [
+              { translateX: waveTopTranslateX },
+              { scaleY: waveTopScaleY },
+            ],
+          },
         ]}
       >
         <LinearGradient
-          colors={["#ff1f1f", "#ff6b3b"]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-
-      {/* BLACK BLOB */}
-      <Animated.View
-        style={[
-          styles.blob,
-          styles.blobBlack,
-          { transform: [{ translateX: blobBTransX }, { translateY: blobBTransY }, { scale: blobBScale }], opacity: 0.18 },
-        ]}
-      >
-        <LinearGradient
-          colors={["#0b0b0b", "#2a2a2a"]}
+          colors={["rgba(255,66,61,0.8)", "rgba(255,138,43,0.45)"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
 
-      {/* Tech floating square */}
+      {/* Bottom dark wave */}
       <Animated.View
         style={[
-          styles.square,
-          { transform: [{ translateY: squareTrans }, { scale: squareScale }], opacity: 0.08 },
+          styles.wave,
+          styles.waveBottom,
+          {
+            width: width * 1.7,
+            height: height * 0.34,
+            transform: [
+              { translateX: waveBottomTranslateX },
+              { scaleY: waveBottomScaleY },
+            ],
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={["rgba(0,0,0,0.7)", "rgba(255,66,61,0.25)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+
+      {/* Floating diamond accent */}
+      <Animated.View
+        style={[
+          styles.diamond,
+          {
+            width: normalize(80),
+            height: normalize(80),
+            right: width * 0.12,
+            top: height * 0.15,
+            transform: [
+              { translateY: diamondTranslateY },
+              { scale: diamondScale },
+              { rotate: diamondRotate },
+            ],
+          },
         ]}
       />
 
-      {/* HEADER — stacked and BIG */}
-      <View style={styles.header}>
-        <Text style={styles.headerExplore}>Explore</Text>
-        <Text style={styles.headerDepartments}>Departments</Text>
-        <Text style={styles.headerSub}>Tap a college to open its dashboard</Text>
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            width: CARD_W,
+            marginTop: vNormalize(45),
+            marginBottom: vNormalize(16),
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.headerMain,
+            {
+              fontSize: normalize(isTablet ? 32 : 50),
+            },
+          ]}
+        >
+          Explore Departments
+        </Text>
+        <Text
+          style={[
+            styles.headerAccent,
+            {
+              fontSize: normalize(isTablet ? 18 : 16),
+            },
+          ]}
+        >
+          Pick a college to see what’s waiting for you.
+        </Text>
       </View>
 
+      {/* Departments list */}
       <FlatList
         data={DEPARTMENTS}
         renderItem={renderItem}
         keyExtractor={(i) => i.key}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[
+          styles.list,
+          {
+            paddingBottom: vNormalize(52),
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -209,122 +411,128 @@ export default function Departments({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: "center", backgroundColor: "#fff" },
-  whiteBg: { ...StyleSheet.absoluteFillObject, backgroundColor: "#fff" },
+  root: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+  whiteBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#ffffff",
+  },
 
-  /* BLOBS */
-  blob: {
+  wave: {
     position: "absolute",
-    width: Math.max(width * 0.9, 360),
-    height: Math.max(width * 0.9, 360),
-    borderRadius: 9999,
+    borderBottomLeftRadius: 160,
+    borderBottomRightRadius: 160,
     overflow: "hidden",
   },
-  blobRed: {
-    top: -height * 0.20,
-    left: -width * 0.20,
+  waveTop: {
+    top: -60,
+    left: -40,
   },
-  blobBlack: {
-    bottom: -height * 0.18,
-    right: -width * 0.12,
+  waveBottom: {
+    bottom: -80,
+    right: -40,
+    transform: [{ rotate: "180deg" }],
   },
 
-  /* FLOATING SQUARE */
-  square: {
+  diamond: {
     position: "absolute",
-    width: 120,
-    height: 120,
-    backgroundColor: "#ff6b3b",
-    right: width * 0.25,
-    top: height * 0.12,
-    borderRadius: 8,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
   },
 
-  /* HEADER */
-  header: { width: CARD_W, marginTop: 50, marginBottom: 15 },
-  headerExplore: {
-    fontSize: 75,
+  header: {},
+  headerMain: {
+    color: "#ff0000ff",
     fontWeight: "900",
-    color: "#ff2b2b",
-    letterSpacing: -1,
+    letterSpacing: -0.4,
   },
-  headerDepartments: {
-    fontSize: 55,
-    fontWeight: "900",
-    color: "#0b0b0b",
-    marginTop: -6,
-    letterSpacing: -1,
-  },
-  headerSub: {
-    marginTop: 1,
-    color: "#333",
-    fontWeight: "700",
-    fontSize: 14,
+  headerAccent: {
+    color: "#000000ff",
+    fontWeight: "600",
+    marginTop: 4,
   },
 
-  /* LIST */
-  list: { paddingBottom: 48, paddingTop: 12, alignItems: "center", width: "100%" },
+  list: {
+    alignItems: "center",
+    width: "100%",
+    paddingTop: 8,
+  },
 
-  /* CARDS */
-  cardWrap: { width: CARD_W, marginVertical: VERT_MARGIN / 2, alignItems: "center" },
-
+  cardWrap: {
+    marginVertical: 6,
+  },
   card: {
     width: "100%",
-    height: CARD_H,
-    borderRadius: RADIUS,
-    overflow: "hidden",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.98)",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.04)",
+    borderColor: "rgba(0,0,0,0.06)",
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 6,
+    overflow: "hidden",
   },
-  cardPressed: { transform: [{ scale: 0.99 }], opacity: 0.97 },
 
-  /* LEFT STRIP */
-  leftBlock: {
-    width: 116,
+  leftStripWrap: {
+    width: 120,
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
-
-  /* GLOSS EFFECT */
-  gloss: {
+  leftStrip: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  leftStripGlow: {
     position: "absolute",
-    top: 8,
-    left: 8,
-    right: 8,
-    height: 34,
-    borderRadius: 12,
-    transform: [{ rotate: "-18deg" }],
+    width: "150%",
+    height: 40,
+    borderRadius: 999,
+    transform: [{ rotate: "-20deg" }],
+    top: 6,
+    left: -28,
   },
 
-  /* CARD CONTENT */
-  cardContent: { flex: 1, paddingHorizontal: 16, justifyContent: "center" },
-  acronym: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#0b0b0b",
-    marginBottom: 4,
+  cardContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    justifyContent: "center",
   },
-  title: { fontSize: 13, color: "#222", fontWeight: "600" },
+  title: {
+    color: "#111",
+    fontWeight: "700",
+  },
+  metaText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "500",
+  },
 
-  /* CHEVRON */
-  chevWrap: { width: 56, alignItems: "center", justifyContent: "center" },
-  chevBg: {
+  chevWrap: {
+    width: 56,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chevPill: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.04)",
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.06)",
     justifyContent: "center",
     alignItems: "center",
   },
-  chev: { color: "#444", fontSize: 26, transform: [{ translateX: 2 }] },
+  chevText: {
+    color: "#444",
+    fontSize: 26,
+    transform: [{ translateX: 1 }],
+  },
 });

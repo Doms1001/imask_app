@@ -1,4 +1,5 @@
-// CBAF8.js — CBAF Yellow→Orange theme; NAME larger (70%), Semester smaller (28%)
+// COAF10.js – updated with long Name + half-size Semester/Year fields
+// (default fields filled with example numbers)
 
 import React, { useRef, useEffect, useState } from 'react';
 import {
@@ -6,378 +7,352 @@ import {
   View,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   TouchableWithoutFeedback,
+  TouchableOpacity,
   Image,
-  Text,
-  TextInput,
   Dimensions,
   Animated,
   Platform,
+  Text,
+  TextInput,
   ScrollView,
+  Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const BACK = require('../../../assets/back.png');
-const GMAIL = require('../../../assets/gmail.png');
+const GMAIL_IMG = { uri: "file:///mnt/data/2a55a4ee-8439-4987-8640-2b9ee722a0a0.png" };
 
-// (keep ACCENT_IMG path or replace with your uploaded image)
-const ACCENT_IMG = { uri: 'file:///mnt/data/a73ddb0c-dec9-4345-8acf-e11ea19fb55c.png' };
-
-export default function CBAF8({ navigation }) {
-  const fade = useRef(new Animated.Value(0)).current;
-
-  const [name, setName] = useState('');
-
-  // FIXED values (no dropdowns)
-  const semester = "1st";
-  const year = "1";
-  const academicYear = "2025–2026";
-
-  // fees
-  const [tuition, setTuition] = useState('');
-  const [lab, setLab] = useState('');
-  const [nonLab, setNonLab] = useState('');
-  const [misc, setMisc] = useState('');
-  const [nstp, setNstp] = useState('');
-  const [other, setOther] = useState('');
-  const [discount, setDiscount] = useState('');
-  const [downPayment, setDownPayment] = useState('');
+export default function COAF10({ navigation }) {
+  const dummy = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    Animated.timing(dummy, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   function navSafe(route) {
     if (navigation?.navigate) navigation.navigate(route);
   }
 
-  function toNum(s) {
-    if (!s) return 0;
-    const cleaned = s.replace(/[^0-9.-]/g, '');
-    return cleaned ? Number(cleaned) : 0;
-  }
+  // form fields (defaults filled with example values)
+  const [name, setName] = useState('Juan Dela Cruz');
+  const [semester, setSemester] = useState('1st');
+  const [year, setYear] = useState('1');
+  const [acadYear, setAcadYear] = useState('2025–2026');
+
+  const [tuition, setTuition] = useState('15000.00');
+  const [lab, setLab] = useState('1200.00');
+  const [nonLab, setNonLab] = useState('800.00');
+  const [misc, setMisc] = useState('500.00');
+  const [nstp, setNstp] = useState('200.00');
+  const [otherFee, setOtherFee] = useState('0.00');
+  const [discount, setDiscount] = useState('1000.00');
+  const [downPayment, setDownPayment] = useState('3000.00');
+
+  const parseNum = v => {
+    const n = parseFloat(String(v).replace(/[^0-9.-]+/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
 
   const totalFees =
-    toNum(tuition) +
-    toNum(lab) +
-    toNum(nonLab) +
-    toNum(misc) +
-    toNum(nstp) +
-    toNum(other) -
-    toNum(discount);
+    parseNum(tuition) +
+    parseNum(lab) +
+    parseNum(nonLab) +
+    parseNum(misc) +
+    parseNum(nstp) +
+    parseNum(otherFee);
 
-  const balance = totalFees - toNum(downPayment);
+  const totalAfterDiscount = Math.max(0, totalFees - parseNum(discount));
+  const balance = Math.max(0, totalAfterDiscount - parseNum(downPayment));
 
-  function formatMoney(n) {
-    const fixed = (n || 0).toFixed(2);
-    return fixed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  function sendEmail() {
+    const subject = encodeURIComponent('Computation of Fees');
+    const body = encodeURIComponent(
+      [
+        `Name: ${name}`,
+        `Semester: ${semester}`,
+        `Year: ${year}`,
+        `Academic Year: ${acadYear}`,
+        '',
+        'Computation of Fees:',
+        `Tuition Fee: ${tuition}`,
+        `Laboratory Fee: ${lab}`,
+        `Non-Lab Fee: ${nonLab}`,
+        `Misc Fee: ${misc}`,
+        `NSTP/ROTC Fee: ${nstp}`,
+        `Other Fee: ${otherFee}`,
+        `Discount: ${discount}`,
+        `TOTAL FEES: ${totalFees.toFixed(2)}`,
+        `Down Payment: ${downPayment}`,
+        `Balance: ${balance.toFixed(2)}`,
+      ].join('\n')
+    );
+
+    const mailto = `mailto:?subject=${subject}&body=${body}`;
+    Linking.openURL(mailto).catch(() => {
+      Alert.alert('Error', 'Unable to open mail client.');
+    });
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={s.screen}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* soft warm background */}
-      <LinearGradient colors={['#fff9f0', '#fff5ea']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#FFFFFF', '#FFF9D9']} style={s.bg} />
 
-      {/* accent decorative image */}
-      <Image source={ACCENT_IMG} style={styles.accentImg} />
+      <View style={s.layerTopRight} />
+      <View style={s.layerBottomLeft} />
 
-      {/* small top shape */}
-      <View style={styles.topShape} />
-
-      {/* Back Button */}
-      <TouchableWithoutFeedback onPress={() => navSafe('CBAF4')}>
-        <View style={styles.back}>
-          <Image source={BACK} style={styles.backImg} />
+      <TouchableWithoutFeedback onPress={() => navSafe('COAF4')}>
+        <View style={s.back}>
+          <Image source={BACK} style={s.backImg} />
         </View>
       </TouchableWithoutFeedback>
 
-      <Animated.View style={{ flex: 1, opacity: fade }}>
-        <ScrollView contentContainerStyle={styles.contentWrap}>
+      <View style={s.contentWrap}>
+        <ScrollView
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
 
-          {/* ---------- FIRST ROW ---------- */}
-          <View style={styles.formRow}>
-            {/* NAME enlarged (70%) */}
-            <View style={[styles.inputCard, { width: '70%' }]}>
-              <Text style={styles.inputLabel}>Name</Text>
+          {/* NAME full width */}
+          <View style={{ marginBottom: 14 }}>
+            <Text style={s.label}>Name:</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Full name"
+              placeholderTextColor="#666"
+              style={s.input}
+            />
+          </View>
+
+          {/* Semester + Year half width */}
+          <View style={s.formRow}>
+            <View style={s.formColHalf}>
+              <Text style={s.label}>Semester:</Text>
               <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Full name"
-                placeholderTextColor="#a88"
-                style={styles.textInput}
+                value={semester}
+                onChangeText={setSemester}
+                placeholder="e.g. 1st"
+                placeholderTextColor="#666"
+                style={s.input}
               />
             </View>
 
-            {/* SEMESTER small (28%) */}
-            <View style={[styles.inputCard, { width: '28%' }]}>
-              <Text style={styles.inputLabel}>Semester</Text>
-              <View style={styles.fixedBox}>
-                <Text style={styles.fixedText}>{semester}</Text>
-              </View>
+            <View style={[s.formColHalf, { marginLeft: 10 }]}>
+              <Text style={s.label}>Year:</Text>
+              <TextInput
+                value={year}
+                onChangeText={setYear}
+                placeholder="e.g. 1"
+                placeholderTextColor="#666"
+                style={s.input}
+              />
             </View>
           </View>
 
-          {/* SECOND ROW */}
-          <View style={styles.formRow}>
-            <View style={[styles.inputCard, { width: '48%' }]}>
-              <Text style={styles.inputLabel}>Year</Text>
-              <View style={styles.fixedBox}>
-                <Text style={styles.fixedText}>{year}</Text>
-              </View>
-            </View>
-
-            <View style={[styles.inputCard, { width: '48%' }]}>
-              <Text style={styles.inputLabel}>Academic Year</Text>
-              <View style={styles.fixedBox}>
-                <Text style={styles.fixedText}>{academicYear}</Text>
-              </View>
+          {/* Academic Year half width on right */}
+          <View style={s.formRow}>
+            <View style={s.formColHalf}></View>
+            <View style={[s.formColHalf, { marginLeft: 10 }]}>
+              <Text style={s.label}>Academic Year:</Text>
+              <TextInput
+                value={acadYear}
+                onChangeText={setAcadYear}
+                placeholder="e.g. 2024–2025"
+                placeholderTextColor="#666"
+                style={s.input}
+              />
             </View>
           </View>
 
-          {/* ---------- COMPUTATION CARD (Yellow→Orange gradient) ---------- */}
-          <View style={styles.computationWrap}>
-            <LinearGradient
-              colors={['#FFD54F', '#FFB300', '#FF8A00']}
-              style={styles.computationCard}
-            >
-              <View style={styles.innerPanel}>
-                <Text style={styles.cardTitle}>Computation of Fees</Text>
+          {/* Fees Table */}
+          <View style={s.tableCard}>
+            <Text style={s.tableTitle}>Computation of Fees</Text>
 
-                <View style={styles.table}>
-                  {[
-                    { label: 'Tuition Fee', value: tuition, onChange: setTuition },
-                    { label: 'Laboratory Fee', value: lab, onChange: setLab },
-                    { label: 'Non-Lab Fee', value: nonLab, onChange: setNonLab },
-                    { label: 'Misc Fee', value: misc, onChange: setMisc },
-                    { label: 'NSTP/ROTC Fee', value: nstp, onChange: setNstp },
-                    { label: 'Other Fee', value: other, onChange: setOther },
-                    { label: 'Discount', value: discount, onChange: setDiscount },
-                    { label: 'TOTAL FEES', computed: formatMoney(totalFees) },
-                    { label: 'Down Payment', value: downPayment, onChange: setDownPayment },
-                    { label: 'Balance', computed: formatMoney(balance) },
-                  ].map((r, i) => (
-                    <View key={i} style={[styles.row, i % 2 ? styles.rowOdd : styles.rowEven]}>
-                      <Text style={styles.rowLabel}>{r.label}</Text>
+            <View style={s.table}>
+              {[
+                { label: 'Tuition Fee', value: tuition, onChange: setTuition },
+                { label: 'Laboratory Fee', value: lab, onChange: setLab },
+                { label: 'Non-Lab Fee', value: nonLab, onChange: setNonLab },
+                { label: 'Misc Fee', value: misc, onChange: setMisc },
+                { label: 'NSTP/ROTC Fee', value: nstp, onChange: setNstp },
+                { label: 'Other Fee', value: otherFee, onChange: setOtherFee },
+                { label: 'Discount', value: discount, onChange: setDiscount },
+                { label: 'TOTAL FEES', value: totalFees.toFixed(2), static: true },
+                { label: 'Down Payment', value: downPayment, onChange: setDownPayment },
+                { label: 'Balance', value: balance.toFixed(2), static: true },
+              ].map((row, idx) => (
+                <View key={idx} style={s.tableRow}>
+                  <View style={s.tdLeft}>
+                    <Text style={s.tdLabel}>{row.label}</Text>
+                  </View>
 
-                      {r.computed !== undefined ? (
-                        <View style={styles.computedBox}>
-                          <Text style={styles.computedText}>{r.computed}</Text>
-                        </View>
-                      ) : (
-                        <TextInput
-                          value={r.value}
-                          onChangeText={r.onChange}
-                          placeholder="0.00"
-                          keyboardType="numeric"
-                          placeholderTextColor="#a98"
-                          style={styles.valueInput}
-                        />
-                      )}
-                    </View>
-                  ))}
+                  <View style={s.tdRight}>
+                    {row.static ? (
+                      <Text style={s.tdValueStatic}>{row.value}</Text>
+                    ) : (
+                      <TextInput
+                        value={row.value}
+                        onChangeText={row.onChange}
+                        placeholder="0.00"
+                        placeholderTextColor="#999"
+                        keyboardType="numeric"
+                        style={s.tdInput}
+                      />
+                    )}
+                  </View>
                 </View>
-              </View>
-            </LinearGradient>
+              ))}
+            </View>
           </View>
 
-          {/* ---------- SEND COPY ---------- */}
-          <View style={styles.sendWrap}>
-            <Text style={styles.sendLabel}>Send copy via Email</Text>
+          {/* Gmail Button */}
+          <View style={s.sendWrap}>
+            <Text style={s.sendLabel}>Send copy via Email</Text>
 
-            <TouchableOpacity style={styles.gmailBtn}>
-              <LinearGradient colors={['#fff', '#fff7e6']} style={styles.gmailInner}>
-                <Image source={GMAIL} style={styles.gmailIcon} />
-                <Text style={styles.gmailText}>Send via Gmail</Text>
-              </LinearGradient>
+            <TouchableOpacity style={s.gmailBtn} onPress={sendEmail}>
+              <View style={s.gmailInner}>
+                <Image source={GMAIL_IMG} style={s.gmailImg} />
+                <Text style={s.gmailText}>Gmail</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 40 }} />
         </ScrollView>
-      </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  bg: { ...StyleSheet.absoluteFillObject },
 
-  accentImg: {
-    position: 'absolute',
-    left: -30,
-    top: -60,
-    width: 280,
-    height: 280,
-    opacity: 0.10,
-    transform: [{ rotate: '-12deg' }],
-  },
-
-  topShape: {
+  layerTopRight: {
     position: 'absolute',
     right: -40,
     top: -20,
-    width: 240,
-    height: 240,
-    borderRadius: 20,
-    backgroundColor: '#000',
-    opacity: 0.03,
+    width: 220,
+    height: 220,
+    borderRadius: 18,
+    backgroundColor: '#F4D03F',
+    opacity: 0.25,
+  },
+  layerBottomLeft: {
+    position: 'absolute',
+    left: -60,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: '#F8C400',
+    opacity: 0.35,
   },
 
   back: {
     position: 'absolute',
     right: 14,
-    top: Platform.OS === 'ios' ? 52 : 30,
-    zIndex: 20,
+    top: 50,
+    width: 50,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backImg: { width: 30, height: 30, tintColor: '#222' },
+  backImg: { width: 34, height: 34, tintColor: '#000' },
 
   contentWrap: {
-    paddingTop: 100,
-    paddingHorizontal: 20,
-    paddingBottom: 50,
-    alignItems: 'center',
+    marginTop: 36,
+    width: Math.min(420, width - 28),
+    height: Math.min(560, height * 0.72),
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    overflow: 'hidden',
+    elevation: 6,
+  },
+
+  scrollContent: { padding: 14, paddingBottom: 30 },
+
+  label: { fontSize: 13, fontWeight: '600', color: '#222', marginBottom: 6 },
+
+  input: {
+    height: 38,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFF9D9',
+    borderColor: '#F0E6A8',
+    borderWidth: 1,
+    color: '#111',
   },
 
   formRow: {
-    width: Math.min(760, width - 36),
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
+  },
+  formColHalf: {
+    flex: 1,
   },
 
-  inputCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(170,80,0,0.06)',
-  },
-
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#b36b00',
-    marginBottom: 6,
-  },
-
-  textInput: {
-    fontSize: 15,
-    paddingVertical: 4,
-    color: '#111',
-  },
-
-  fixedBox: {
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.07)',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingRight: 10,
-  },
-
-  fixedText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
-  },
-
-  computationWrap: {
-    width: Math.min(760, width - 36),
+  tableCard: {
     marginTop: 12,
-  },
-
-  computationCard: { borderRadius: 16, padding: 10 },
-
-  innerPanel: {
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    padding: 12,
-    borderRadius: 12,
-  },
-
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#b36b00',
-    marginBottom: 10,
-  },
-
-  table: {
-    borderRadius: 10,
-    overflow: 'hidden',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(180,100,0,0.08)',
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: '#fff',
   },
-
-  row: {
-    height: 44,
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  rowEven: { backgroundColor: '#fff' },
-  rowOdd: { backgroundColor: '#fffaf3' },
-
-  rowLabel: {
-    width: '54%',
+  tableTitle: {
+    padding: 10,
+    backgroundColor: '#FFF7E0',
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4a2a00',
-  },
-
-  valueInput: {
-    width: '44%',
-    textAlign: 'right',
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111',
-  },
-
-  computedBox: { width: '44%', alignItems: 'flex-end' },
-
-  computedText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#b36b00',
-  },
-
-  sendWrap: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-
-  sendLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#b36b00',
-    marginBottom: 8,
-  },
-
-  gmailBtn: {
-    width: 200,
-    borderRadius: 28,
-    overflow: 'hidden',
-  },
-
-  gmailInner: {
-    paddingVertical: 10,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  gmailIcon: { width: 22, height: 22, marginRight: 10 },
-
-  gmailText: {
-    fontSize: 15,
     fontWeight: '700',
-    color: '#b36b00',
+    color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
   },
+  table: {},
+  tableRow: {
+    flexDirection: 'row',
+    minHeight: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+    alignItems: 'center',
+  },
+  tdLeft: { flex: 2, paddingHorizontal: 10 },
+  tdRight: { flex: 1, paddingHorizontal: 10, alignItems: 'flex-end' },
+  tdLabel: { fontSize: 13, color: '#222' },
+  tdInput: {
+    height: 32,
+    width: '100%',
+    backgroundColor: '#FFF9D9',
+    borderColor: '#F0E6A8',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    textAlign: 'right',
+  },
+  tdValueStatic: { fontSize: 13, fontWeight: '700', color: '#222' },
+
+  sendWrap: { marginTop: 18, alignItems: 'center' },
+  sendLabel: { fontSize: 12, color: '#333', marginBottom: 8 },
+  gmailBtn: {
+    width: 160,
+    borderRadius: 26,
+    backgroundColor: '#fff',
+    elevation: 6,
+  },
+  gmailInner: {
+    flexDirection: 'row',
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gmailImg: { width: 26, height: 22, marginRight: 10 },
+  gmailText: { fontSize: 14, fontWeight: '700', color: '#222' },
 });

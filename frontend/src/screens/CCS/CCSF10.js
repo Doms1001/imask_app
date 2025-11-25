@@ -25,7 +25,7 @@ export default function COAF10({ navigation }) {
       <StatusBar barStyle="dark-content" />
 
       {/* BACK BUTTON */}
-      <TouchableWithoutFeedback onPress={() => navSafe('COAF4')}>
+      <TouchableWithoutFeedback onPress={() => navSafe('CSSF4')}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
         </View>

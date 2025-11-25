@@ -35,27 +35,27 @@ const DATA = [
   },
   {
     title:
-      "Bachelor of Science in Computer Science with Specialization in Data & Analytics",
-    subtitle: "Data & Analytics",
-    desc: "Computer Science specializing in Data Science, focusing on analytics, AI, and machine learning.",
+      "N/A",
+    subtitle: "N/A",
+    desc: "N/A",
   },
   {
     title:
-      "Bachelor of Science in Information Technology with Specialization in Mobile and Web Development",
-    subtitle: "Mobile & Web",
-    desc: "IT program specializing in mobile and web development — apps, websites, and modern tech.",
+      "N/A",
+    subtitle: "N/A",
+    desc: "N/A",
   },
   {
     title:
-      "Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation",
-    subtitle: "Media & Animation",
-    desc: "IT program specializing in multimedia, animation, and digital creative production.",
+      "N/A",
+    subtitle: "N/A",
+    desc: "N/A",
   },
   {
     title:
-      "Bachelor of Science in Information Technology with Specialization in Network and System Administration",
-    subtitle: "Networks & Systems",
-    desc: "IT program specializing in maintaining, managing, and securing network systems.",
+      "N/A",
+    subtitle: "N/A",
+    desc: "N/A",
   },
 ];
 

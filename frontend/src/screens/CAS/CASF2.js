@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   cardLogo: { position: "absolute", width: "80%", height: 210, opacity: 0.65, top: 45, right: 19 },
 
   textBlock: { marginTop: 90 },
-  h1: { color: "#fff", fontSize: 35, fontWeight: "800", lineHeight: 50, marginTop: 150 },
+  h1: { color: "#fff", fontSize: 3, fontWeight: "800", lineHeight: 50, marginTop: 150 },
   h2: { color: "rgba(255,255,255,0.95)", fontSize: 14, fontWeight: "700", marginTop: 6, opacity: 0.95 },
   p: { color: "rgba(255,255,255,0.95)", marginTop: 10, lineHeight: 18, fontWeight: "400" },
 });

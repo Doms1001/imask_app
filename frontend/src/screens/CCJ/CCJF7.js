@@ -1,4 +1,4 @@
-// CCJF7.js — Gray & Black Theme (no Firebase)
+// CCJF7.js — Gray & Black Theme 
 
 import React, { useRef, useEffect } from 'react';
 import {

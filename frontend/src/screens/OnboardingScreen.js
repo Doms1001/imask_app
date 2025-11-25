@@ -1,3 +1,4 @@
+// frontend/src/screens/OnboardingScreen.js
 import React, { useEffect, useRef, useState } from "react";
 import {
   SafeAreaView,
@@ -14,27 +15,54 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ZoomImage from "../components/ZoomImage";
 
-import { useFonts as usePacifico, Pacifico_400Regular } from "@expo-google-fonts/pacifico";
-import { useFonts as useLato, Lato_400Regular, Lato_700Bold, Lato_900Black } from "@expo-google-fonts/lato";
+import {
+  useFonts as usePacifico,
+  Pacifico_400Regular,
+} from "@expo-google-fonts/pacifico";
+import {
+  useFonts as useLato,
+  Lato_400Regular,
+  Lato_700Bold,
+  Lato_900Black,
+} from "@expo-google-fonts/lato";
 
 export default function OnboardingScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-
-  // dynamic dims via hook (auto-updates on rotate)
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
-  // subtle layout animation when dimensions change
+  // dynamic scale helpers
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const scale = SCREEN_W / BASE_W;
+  const vScale = SCREEN_H / BASE_H;
+  const normalize = (size) => size * scale;
+  const vNormalize = (size) => size * vScale;
+  const isTablet = SCREEN_W > 600;
+
+  // layout pulse
   const layoutAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    // pulse layout slightly on size change
     Animated.sequence([
-      Animated.timing(layoutAnim, { toValue: 0.985, duration: 120, useNativeDriver: true }),
-      Animated.timing(layoutAnim, { toValue: 1.0, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(layoutAnim, {
+        toValue: 0.985,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(layoutAnim, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [SCREEN_W, SCREEN_H, layoutAnim]);
 
   const [pLoaded] = usePacifico({ Pacifico_400Regular });
-  const [lLoaded] = useLato({ Lato_400Regular, Lato_700Bold, Lato_900Black });
+  const [lLoaded] = useLato({
+    Lato_400Regular,
+    Lato_700Bold,
+    Lato_900Black,
+  });
   const fontsLoaded = pLoaded && lLoaded;
 
   const animOpacity = useRef(new Animated.Value(0)).current;
@@ -58,39 +86,36 @@ export default function OnboardingScreen({ navigation }) {
     ]).start();
   }, [animOpacity, animTranslateX]);
 
-  // ===== Hidden admin-tap logic (5 taps) =====
+  // ===== Hidden 5-tap → AdminLogIn =====
   const tapCounter = useRef(0);
   const tapTimeout = useRef(null);
 
   const handleSecretTap = () => {
-    // increment
     tapCounter.current = (tapCounter.current || 0) + 1;
 
-    // if reached 5 taps -> navigate to AdminScreen (changed)
     if (tapCounter.current >= 5) {
       tapCounter.current = 0;
       if (tapTimeout.current) {
         clearTimeout(tapTimeout.current);
         tapTimeout.current = null;
       }
-      navigation.navigate("AdminScreen"); // <-- updated target
+      navigation.navigate("AdminLogIn"); // 👈 secret admin route
       return;
     }
 
-    // reset if no further taps within 1.5s
     if (tapTimeout.current) clearTimeout(tapTimeout.current);
     tapTimeout.current = setTimeout(() => {
       tapCounter.current = 0;
       tapTimeout.current = null;
     }, 1500);
   };
-  // ============================================
+  // =====================================
 
   if (!fontsLoaded) {
     return (
       <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color="#FF423D" />
         </View>
       </SafeAreaView>
     );
@@ -122,13 +147,12 @@ export default function OnboardingScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
-      {/* Invisible admin circle in top-right (does NOT affect layout) */}
+      {/* invisible tap area for admin login */}
       <TouchableOpacity
         onPress={handleSecretTap}
         activeOpacity={1}
         style={[
           styles.hiddenButton,
-          // position it just below the safe area so it won't overlap status bar icons
           { top: insets.top + 8, right: 16 },
         ]}
       />
@@ -145,18 +169,65 @@ export default function OnboardingScreen({ navigation }) {
             },
           ]}
         >
-          {/* ZoomImage will render top area; pass props if needed */}
+          {/* hero illustration */}
           <ZoomImage topPercent={0.45} zoom={2} />
 
-          <View style={styles.content}>
-            <Text style={styles.subtitle}>"Unlocking knowledge, shaping the future"</Text>
+          {/* text + button */}
+          <View
+            style={[
+              styles.content,
+              {
+                paddingHorizontal: normalize(26),
+                paddingBottom: vNormalize(28),
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: normalize(14),
+                  marginTop: vNormalize(16),
+                  marginBottom: vNormalize(12),
+                },
+              ]}
+            >
+              "Unlocking knowledge, shaping the future"
+            </Text>
 
-            <Text style={styles.trimexLine}>Trimex Learning Experience...</Text>
-            <Text style={styles.worthIt}>Worth It</Text>
+            <Text
+              style={[
+                styles.trimexLine,
+                {
+                  fontSize: normalize(isTablet ? 22 : 20),
+                  lineHeight: vNormalize(30),
+                },
+              ]}
+            >
+              Trimex Learning Experience...
+            </Text>
+
+            <Text
+              style={[
+                styles.worthIt,
+                {
+                  fontSize: normalize(isTablet ? 46 : 40),
+                  lineHeight: vNormalize(56),
+                  marginBottom: vNormalize(8),
+                },
+              ]}
+            >
+              Worth It
+            </Text>
 
             <Pressable
               style={({ pressed }) => [
                 styles.button,
+                {
+                  paddingVertical: vNormalize(22),
+                  paddingHorizontal: normalize(100),
+                  marginTop: vNormalize(20),
+                },
                 buttonDisabled && styles.buttonDisabled,
                 pressed && !buttonDisabled ? styles.buttonPressed : null,
               ]}
@@ -166,7 +237,14 @@ export default function OnboardingScreen({ navigation }) {
               {isAnimating ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Get Started</Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { fontSize: normalize(18) },
+                  ]}
+                >
+                  Get Started
+                </Text>
               )}
             </Pressable>
           </View>
@@ -178,7 +256,7 @@ export default function OnboardingScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f2f2f4" },
-  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 0 },
+  container: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   card: {
     backgroundColor: "#fff",
@@ -192,38 +270,27 @@ const styles = StyleSheet.create({
 
   content: {
     width: "100%",
-    paddingHorizontal: 26,
-    paddingTop: 6,
-    paddingBottom: 28,
     alignItems: "center",
     marginTop: 8,
   },
 
   trimexLine: {
-    fontSize: 20,
     color: "#FF423D",
     fontFamily: "Pacifico_400Regular",
-    lineHeight: 30,
+    textAlign: "center",
     marginBottom: 2,
     marginTop: 8,
-    textAlign: "center",
   },
 
   worthIt: {
-    fontSize: 42,
     color: "#FF423D",
     fontFamily: "Pacifico_400Regular",
-    lineHeight: 60,
-    marginBottom: 8,
     textAlign: "center",
   },
 
   subtitle: {
-    fontSize: 14,
     color: "#7a7a7a",
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 12,
     fontFamily: "Lato_400Regular",
     textDecorationLine: "underline",
     textDecorationColor: "rgba(120,120,120,0.35)",
@@ -231,35 +298,28 @@ const styles = StyleSheet.create({
 
   button: {
     backgroundColor: "#0b1113",
-    paddingVertical: 25,
-    paddingHorizontal: 100,
     borderRadius: 50,
     minWidth: 160,
     alignSelf: "center",
     alignItems: "center",
-    marginTop: 20,
   },
-  buttonDisabled: {
-    opacity: 0.55,
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.98 }],
-  },
+  buttonDisabled: { opacity: 0.55 },
+  buttonPressed: { transform: [{ scale: 0.98 }] },
+
   buttonText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 18,
     fontFamily: "Lato_900Black",
   },
+
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  // invisible circle for admin taps (doesn't change layout)
   hiddenButton: {
     position: "absolute",
     width: 50,
     height: 50,
     borderRadius: 25,
     zIndex: 9999,
-    // backgroundColor: 'rgba(255,0,0,0.15)', // uncomment when debugging
+    // backgroundColor: "rgba(255,0,0,0.2)", // uncomment to see area while testing
   },
 });

@@ -1,99 +1,150 @@
 // frontend/src/screens/CCS/CCSF2.js
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Platform,
   Image,
   ScrollView,
   Animated,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import BottomPager from '../../components/BottomPager'; // shared pager
+  useWindowDimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import BottomPager from "../../components/BottomPager";
 
-const { width, height } = Dimensions.get('window');
-const CONTAINER_W = Math.min(420, width - 28);
-const CARD_GAP = 18;
-const CARD_W = CONTAINER_W;
-const VISIBLE_W = CARD_W + CARD_GAP;
+const LOGO = require("../../../assets/CCSlogo.png");
+const BACK = require("../../../assets/back.png");
 
-const LOGO = require('../../../assets/CCSlogo.png');
-const BACK = require('../../../assets/back.png');
-
+// ========================================
+//   DATA CONTENT
+// ========================================
 const DATA = [
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Cybersecurity',
-    subtitle: 'Cyber & Security',
-    desc: 'Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions for modern technology challenges.',
+    title: "Bachelor of Science in Computer Science with Specialization in Cybersecurity",
+    subtitle: "Cyber & Security",
+    desc: "Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions.",
   },
   {
-    title: 'Bachelor of Science in Computer Science with Specialization in Data & Analytics',
-    subtitle: 'Data & Analytics',
-    desc: 'Computer Science program specializing in Data Science, focusing on programming, analytics, AI, and machine learning.',
+    title: "Bachelor of Science in Computer Science with Specialization in Data & Analytics",
+    subtitle: "Data & Analytics",
+    desc: "Focuses on programming, analytics, machine learning, and large-scale data processing.",
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Mobile and Web Development',
-    subtitle: 'Mobile & Web',
-    desc: 'IT program specializing in mobile and web development, focusing on apps, websites, and modern technologies.',
+    title: "Bachelor of Science in Information Technology (Mobile & Web Development)",
+    subtitle: "Mobile & Web",
+    desc: "Specializes in building mobile apps, websites, front-end, and full-stack development.",
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Multimedia Arts and Animation',
-    subtitle: 'Media & Animation',
-    desc: 'IT program specializing in Multimedia Arts and Animation, teaching digital design, animation, and creative media production.',
+    title: "Bachelor of Science in Information Technology (Multimedia Arts & Animation)",
+    subtitle: "Media & Animation",
+    desc: "Covers digital art, animation production, creative design fundamentals and effects.",
   },
   {
-    title: 'Bachelor of Science in Information Technology with Specialization in Network and System Administration',
-    subtitle: 'Networks & Systems',
-    desc: 'IT program specializing in Network and System Administration, managing and securing computer systems.',
+    title: "Bachelor of Science in Information Technology (Network & System Administration)",
+    subtitle: "Networks & Systems",
+    desc: "Specializes in network architecture, security, servers, cloud and IT infrastructure.",
   },
 ];
 
 export default function CCSF2({ navigation }) {
+  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
+
+  // Responsive scale
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const scale = SCREEN_W / BASE_W;
+  const vScale = SCREEN_H / BASE_H;
+  const normalize = (s) => s * scale;
+  const vNormalize = (s) => s * vScale;
+
+  const CARD_GAP = normalize(20);
+  const CARD_W = Math.min(SCREEN_W * 0.9, 420);
+  const VISIBLE_W = CARD_W + CARD_GAP;
+
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
 
+  // subtle breathing pulse
+  const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1700, useNativeDriver: true }),
       ])
     ).start();
-  }, [pulse]);
+  }, []);
+
+  const pulseScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.045],
+  });
 
   function onMomentumScrollEnd(e) {
     const x = e.nativeEvent.contentOffset.x;
-    const ix = Math.round(x / VISIBLE_W);
-    setIndex(ix);
+    setIndex(Math.round(x / VISIBLE_W));
   }
 
   function handleScroll(e) {
-    const x = e.nativeEvent.contentOffset.x;
-    parallax.setValue(x);
+    parallax.setValue(e.nativeEvent.contentOffset.x);
   }
-
-  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.03] });
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="light-content" />
 
-      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
-      <View style={s.layerTopRight} />
-      <View style={s.layerBottomLeft} />
+      {/* --- BACKGROUND LAYERS --- */}
+      <LinearGradient
+        colors={["#ffffff", "#f4f4f7"]}
+        style={StyleSheet.absoluteFill}
+      />
 
-      <TouchableOpacity style={s.back} onPress={() => navigation?.navigate && navigation.navigate('CCSF1')}>
-        <Image source={BACK} style={s.backImg} />
+      {/* Animated floating red orb */}
+      <Animated.View
+        style={[
+          s.floatingOrb,
+          {
+            top: vNormalize(-60),
+            right: normalize(-40),
+            transform: [{ scale: pulseScale }],
+          },
+        ]}
+      />
+
+      {/* Subtle black blurred layer */}
+      <View
+        style={[
+          s.blurLayer,
+          {
+            left: normalize(-80),
+            bottom: vNormalize(-60),
+          },
+        ]}
+      />
+
+      {/* --- BACK BUTTON --- */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("CCSF1")}
+        style={[s.backBtn, { top: vNormalize(10), right: normalize(12) }]}
+      >
+        <Image
+          source={BACK}
+          style={{ width: normalize(32), height: normalize(32), tintColor: "#fff" }}
+        />
       </TouchableOpacity>
 
-      <View style={s.carouselWrap}>
+      {/* --- CARDS WRAPPER --- */}
+      <View
+        style={[
+          s.carouselWrap,
+          { width: CARD_W, height: Math.min(SCREEN_H * 0.7, 520) },
+        ]}
+      >
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -101,44 +152,108 @@ export default function CCSF2({ navigation }) {
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           snapToInterval={VISIBLE_W}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={{
+            paddingHorizontal: (SCREEN_W - CARD_W) / 2 - CARD_GAP / 2,
+          }}
           onMomentumScrollEnd={onMomentumScrollEnd}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: parallax } } }], {
-            useNativeDriver: false,
-            listener: handleScroll,
-          })}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: parallax } } }],
+            { listener: handleScroll, useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
         >
           {DATA.map((it, i) => {
-            const input = [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W];
-            const rotate = parallax.interpolate({ inputRange: input, outputRange: ['-3deg', '0deg', '3deg'], extrapolate: 'clamp' });
-            const scale = parallax.interpolate({ inputRange: input, outputRange: [0.98, 1, 0.98], extrapolate: 'clamp' });
+            const input = [
+              (i - 1) * VISIBLE_W,
+              i * VISIBLE_W,
+              (i + 1) * VISIBLE_W,
+            ];
+
+            const rotate = parallax.interpolate({
+              inputRange: input,
+              outputRange: ["-4deg", "0deg", "4deg"],
+              extrapolate: "clamp",
+            });
+
+            const scaleCard = parallax.interpolate({
+              inputRange: input,
+              outputRange: [0.95, 1, 0.95],
+              extrapolate: "clamp",
+            });
 
             return (
-              <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
-                <LinearGradient colors={['#ff6161', '#8b0000']} style={s.card}>
+              <Animated.View
+                key={i}
+                style={[
+                  s.cardContainer,
+                  {
+                    width: CARD_W,
+                    marginRight: CARD_GAP,
+                    transform: [{ rotate }, { scale: scaleCard }],
+                  },
+                ]}
+              >
+                {/* CARD BASE */}
+                <LinearGradient
+                  colors={["#ff4d4d", "#8b0000"]}
+                  style={[s.card, { padding: normalize(20), borderRadius: normalize(22) }]}
+                >
+                  {/* CARD SHINE OVERLAY */}
+                  <View style={s.shineOverlay} />
+
+                  {/* BACKGROUND LOGO */}
                   <Animated.Image
                     source={LOGO}
                     style={[
                       s.cardLogo,
                       {
-                        transform: [
-                          {
-                            translateX: parallax.interpolate({
-                              inputRange: [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W],
-                              outputRange: [50, 0, -50],
-                            }),
-                          },
-                          { scale: pulseScale },
-                        ],
+                        height: vNormalize(210),
+                        top: vNormalize(30),
+                        opacity: 0.23,
+                        transform: [{ scale: pulseScale }],
                       },
                     ]}
                     resizeMode="contain"
                   />
 
-                  <View style={s.textBlock}>
-                    <Text style={s.h1}>{it.title}</Text>
-                    <Text style={s.h2}>{it.subtitle}</Text>
-                    <Text style={s.p}>{it.desc}</Text>
+                  {/* TEXT CONTENT */}
+                  <View style={{ marginTop: vNormalize(72) }}>
+                    <Text
+                      style={[
+                        s.h1,
+                        {
+                          fontSize: normalize(22),
+                          lineHeight: normalize(27),
+                        },
+                      ]}
+                    >
+                      {it.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        s.h2,
+                        {
+                          fontSize: normalize(14),
+                          marginTop: vNormalize(6),
+                        },
+                      ]}
+                    >
+                      {it.subtitle}
+                    </Text>
+
+                    <Text
+                      style={[
+                        s.p,
+                        {
+                          fontSize: normalize(12),
+                          lineHeight: normalize(18),
+                          marginTop: vNormalize(10),
+                        },
+                      ]}
+                    >
+                      {it.desc}
+                    </Text>
                   </View>
                 </LinearGradient>
               </Animated.View>
@@ -147,30 +262,89 @@ export default function CCSF2({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* BottomPager: left circle rises on this screen */}
-      <BottomPager navigation={navigation} activeIndex={index} targets={['CCSF2', 'CCSF3', 'CCSF4']} />
+      {/* --- BOTTOM PAGER --- */}
+      <BottomPager
+        navigation={navigation}
+        activeIndex={index}
+        targets={["CCSF2", "CCSF3", "CCSF4"]}
+      />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
-  bg: { ...StyleSheet.absoluteFillObject },
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
+  screen: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+  },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 50 },
-  backImg: { width: 34, height: 34, tintColor: '#fff' },
+  floatingOrb: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 200,
+    backgroundColor: "#ff1b1b",
+    opacity: 0.55,
+  },
 
-  carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
-  scrollContent: { alignItems: 'center', paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2 },
-  cardContainer: { width: CARD_W, marginRight: CARD_GAP },
-  card: { borderRadius: 20, padding: 22, minHeight: '100%', overflow: 'hidden', alignItems: 'flex-start' },
+  blurLayer: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 200,
+    backgroundColor: "#111",
+    opacity: 0.18,
+  },
 
-  cardLogo: { position: 'absolute', width: '80%', height: 210, opacity: 0.60, top: 45, right: 19 },
+  backBtn: {
+    position: "absolute",
+    padding: 8,
+    zIndex: 20,
+  },
 
-  textBlock: { marginTop: 90 },
-  h1: { color: '#fff', fontSize: 40, fontWeight: '800', lineHeight: 38, marginTop: 50 },
-  h2: { color: '#fff', fontSize: 14, fontWeight: '700', marginTop: 6, opacity: 0.95 },
-  p: { color: 'rgba(255,255,255,0.95)', marginTop: 10, lineHeight: 15, fontWeight: '400' },
+  carouselWrap: {
+    marginTop: 40,
+    alignItems: "center",
+  },
+
+  cardContainer: {
+    overflow: "visible",
+  },
+
+  card: {
+    height: "100%",
+    overflow: "hidden",
+    justifyContent: "flex-start",
+  },
+
+  shineOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    transform: [{ rotate: "45deg" }],
+    width: "180%",
+    height: "180%",
+    top: -80,
+    left: -60,
+  },
+
+  cardLogo: {
+    position: "absolute",
+    width: "85%",
+    right: 10,
+  },
+
+  h1: {
+    color: "#fff",
+    fontWeight: "800",
+  },
+  h2: {
+    color: "#fff",
+    opacity: 0.95,
+    fontWeight: "700",
+  },
+  p: {
+    color: "rgba(255,255,255,0.95)",
+    fontWeight: "400",
+  },
 });

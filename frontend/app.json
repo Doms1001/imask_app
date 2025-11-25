@@ -20,13 +20,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.doms28.imaskfrontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "179d496d-9f18-45d3-ba52-c1c9afedc3a3"
+      }
+    },
+    "owner": "doms28"
   }
 }
