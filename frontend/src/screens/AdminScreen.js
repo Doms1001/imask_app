@@ -1,3 +1,5 @@
+// frontend/src/screens/AdminScreen.js
+
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -12,6 +14,10 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+import * as ImagePicker from "expo-image-picker";
+import { uploadCcsMedia } from "../lib/ccsMediaHelpers";
+
 
 import COAlogo from "../../assets/COAlogo.png";
 import CCSlogo from "../../assets/CCSlogo.png";
@@ -29,6 +35,45 @@ const DEPARTMENTS = [
   { key: "CAS", title: "College of Arts & Science", logo: CASlogo },
 ];
 
+// CCS media slots for CCSF5–7 & CCSF10 (7 total)
+const CCS_MEDIA_SLOTS = [
+  {
+    key: "newsMain",
+    label: "News main image",
+    subtitle: "Used in CCSF5 (big rectangle)",
+  },
+  {
+    key: "eventsTop",
+    label: "Events image – top",
+    subtitle: "Used in CCSF6 (top blurred box)",
+  },
+  {
+    key: "eventsBottom",
+    label: "Events image – bottom",
+    subtitle: "Used in CCSF6 (bottom blurred box)",
+  },
+  {
+    key: "ann1",
+    label: "Announcement image #1",
+    subtitle: "Used in CCSF7",
+  },
+  {
+    key: "ann2",
+    label: "Announcement image #2",
+    subtitle: "Used in CCSF7",
+  },
+  {
+    key: "ann3",
+    label: "Announcement image #3",
+    subtitle: "Used in CCSF7",
+  },
+  {
+    key: "essentials",
+    label: "Student Essentials image",
+    subtitle: "Used in CCSF10 (center rectangle)",
+  },
+];
+
 export default function AdminScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
@@ -43,9 +88,40 @@ export default function AdminScreen({ navigation }) {
   const isTablet = SCREEN_W > 600;
 
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
+
+  // shared highlight text (later you can store per-dept if you want)
   const [titleText, setTitleText] = useState("");
   const [bodyText, setBodyText] = useState("");
 
+  // CCS media local preview state (public_url once uploaded)
+  const [ccsMedia, setCcsMedia] = useState({
+    newsMain: null,
+    eventsTop: null,
+    eventsBottom: null,
+    ann1: null,
+    ann2: null,
+    ann3: null,
+    essentials: null,
+  });
+
+  // which slot is currently uploading (to show "Uploading...")
+  const [uploadingSlot, setUploadingSlot] = useState(null);
+
+  // CCSF8-like config values (only UI for now)
+  const [ccsSem, setCcsSem] = useState("1st");
+  const [ccsYear, setCcsYear] = useState("1");
+  const [ccsAcadYear, setCcsAcadYear] = useState("2025–2026");
+
+  const [ccsTuition, setCcsTuition] = useState("15000.00");
+  const [ccsLab, setCcsLab] = useState("1200.00");
+  const [ccsNonLab, setCcsNonLab] = useState("800.00");
+  const [ccsMisc, setCcsMisc] = useState("500.00");
+  const [ccsNstp, setCcsNstp] = useState("200.00");
+  const [ccsOtherFee, setCcsOtherFee] = useState("0.00");
+  const [ccsDiscount, setCcsDiscount] = useState("1000.00");
+  const [ccsDown, setCcsDown] = useState("3000.00");
+
+  // animations
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(24)).current;
   const blobTop = useRef(new Animated.Value(0)).current;
@@ -68,7 +144,6 @@ export default function AdminScreen({ navigation }) {
       }),
     ]).start();
 
-    // floating blobs
     Animated.loop(
       Animated.sequence([
         Animated.timing(blobTop, {
@@ -103,7 +178,6 @@ export default function AdminScreen({ navigation }) {
       ])
     ).start();
 
-    // pulsing save button glow
     Animated.loop(
       Animated.sequence([
         Animated.timing(saveGlow, {
@@ -158,17 +232,214 @@ export default function AdminScreen({ navigation }) {
     outputRange: [0.25, 0.6],
   });
 
-  const handleFakeUpload = () => {
-    Alert.alert(
-      "Upload image",
-      "Image picker is not wired yet. We’ll connect this to real upload when you’re ready."
-    );
+  // REAL image picker + upload to Supabase
+  const handleSelectImage = async (slotKey) => {
+    if (selectedDept.key !== "CCS") {
+      Alert.alert(
+        "Not yet supported",
+        "Per-screen uploads are currently wired only for CCS in this prototype."
+      );
+      return;
+    }
+
+    try {
+      // ask permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Please allow access to your photos to upload images."
+        );
+        return;
+      }
+
+      // open gallery
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets && result.assets[0];
+      if (!asset?.uri) {
+        Alert.alert("Error", "Could not read image file.");
+        return;
+      }
+
+      setUploadingSlot(slotKey);
+
+      // upload to Supabase (bucket: department_images, table: ccs_media)
+      const publicUrl = await uploadCcsMedia(slotKey, asset.uri);
+
+      // update local preview
+      setCcsMedia((prev) => ({
+        ...prev,
+        [slotKey]: publicUrl,
+      }));
+
+      Alert.alert("Uploaded", "Image updated successfully.");
+    } catch (e) {
+      console.log("[handleSelectImage] error:", e);
+      Alert.alert("Upload failed", "Something went wrong. Please try again.");
+    } finally {
+      setUploadingSlot(null);
+    }
   };
 
   const handleSave = () => {
-    // later: connect to backend per department
-    Alert.alert("Changes saved (UI only)", `Department: ${selectedDept.key}`);
+    if (selectedDept.key === "CCS") {
+      console.log("CCS highlight:", { titleText, bodyText });
+      console.log("CCS media slots:", ccsMedia);
+      console.log("CCS tuition config:", {
+        ccsSem,
+        ccsYear,
+        ccsAcadYear,
+        ccsTuition,
+        ccsLab,
+        ccsNonLab,
+        ccsMisc,
+        ccsNstp,
+        ccsOtherFee,
+        ccsDiscount,
+        ccsDown,
+      });
+      Alert.alert(
+        "Saved (UI only)",
+        "CCS settings logged in console. Later this can also be stored in Supabase."
+      );
+    } else {
+      Alert.alert(
+        "Saved (UI only)",
+        `Department: ${selectedDept.key}\nWe’ll add real save logic later.`
+      );
+    }
   };
+
+  const renderCcsMediaSection = () => {
+    return (
+      <View style={{ marginTop: vNormalize(18) }}>
+        <Text style={styles.sectionLabel}>CCS screens media</Text>
+        <Text style={styles.sectionHint}>
+          These images appear in CCSF5–CCSF7 & CCSF10.
+        </Text>
+
+        {CCS_MEDIA_SLOTS.map((slot) => {
+          const hasImage = !!ccsMedia[slot.key];
+          const isUploading = uploadingSlot === slot.key;
+
+          return (
+            <View key={slot.key} style={styles.mediaRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mediaLabel}>{slot.label}</Text>
+                <Text style={styles.mediaSub}>{slot.subtitle}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.mediaThumb,
+                  hasImage && styles.mediaThumbActive,
+                  isUploading && { opacity: 0.6 },
+                ]}
+                activeOpacity={0.9}
+                onPress={() => handleSelectImage(slot.key)}
+                disabled={isUploading}
+              >
+                <Text style={styles.mediaThumbText}>
+                  {isUploading ? "Uploading..." : hasImage ? "Change" : "Upload"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderCcsFeesSection = () => {
+    return (
+      <View style={{ marginTop: vNormalize(18) }}>
+        <Text style={styles.sectionLabel}>CCSF8 – Tuition computation</Text>
+        <Text style={styles.sectionHint}>
+          These values will later be used by the CCSF8 “Computation of Fees”
+          screen.
+        </Text>
+
+        {/* Row: Semester + Year */}
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <Text style={styles.fieldLabel}>Semester</Text>
+            <TextInput
+              value={ccsSem}
+              onChangeText={setCcsSem}
+              placeholder="1st"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={[styles.textInput, styles.smallInput]}
+            />
+          </View>
+          <View style={[styles.col, { marginLeft: 10 }]}>
+            <Text style={styles.fieldLabel}>Year</Text>
+            <TextInput
+              value={ccsYear}
+              onChangeText={setCcsYear}
+              placeholder="1"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={[styles.textInput, styles.smallInput]}
+            />
+          </View>
+        </View>
+
+        {/* Row: Academic year */}
+        <View style={styles.row}>
+          <View style={styles.col} />
+          <View style={[styles.col, { marginLeft: 10 }]}>
+            <Text style={styles.fieldLabel}>Academic Year</Text>
+            <TextInput
+              value={ccsAcadYear}
+              onChangeText={setCcsAcadYear}
+              placeholder="2025–2026"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={[styles.textInput, styles.smallInput]}
+            />
+          </View>
+        </View>
+
+        {/* Fees table style – simple stacked inputs */}
+        <View style={styles.feesCard}>
+          <Text style={styles.feesTitle}>Computation fields</Text>
+
+          {[
+            { label: "Tuition Fee", value: ccsTuition, setter: setCcsTuition },
+            { label: "Laboratory Fee", value: ccsLab, setter: setCcsLab },
+            { label: "Non-Lab Fee", value: ccsNonLab, setter: setCcsNonLab },
+            { label: "Misc Fee", value: ccsMisc, setter: setCcsMisc },
+            { label: "NSTP / ROTC Fee", value: ccsNstp, setter: setCcsNstp },
+            { label: "Other Fee", value: ccsOtherFee, setter: setCcsOtherFee },
+            { label: "Discount", value: ccsDiscount, setter: setCcsDiscount },
+            {
+              label: "Down Payment",
+              value: ccsDown,
+              setter: setCcsDown,
+            },
+          ].map((row) => (
+            <View key={row.label} style={styles.feeRow}>
+              <Text style={styles.feeLabel}>{row.label}</Text>
+              <TextInput
+                value={row.value}
+                onChangeText={row.setter}
+                keyboardType="numeric"
+                placeholder="0.00"
+                placeholderTextColor="rgba(0,0,0,0.35)"
+                style={[styles.textInput, styles.feeInput]}
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const isCCS = selectedDept.key === "CCS";
 
   return (
     <SafeAreaView
@@ -234,7 +505,7 @@ export default function AdminScreen({ navigation }) {
           <Text
             style={[
               styles.headerTitle,
-              { fontSize: normalize(isTablet ? 26 : 50) },
+              { fontSize: normalize(isTablet ? 26 : 22) },
             ]}
           >
             Admin Control Center
@@ -333,37 +604,42 @@ export default function AdminScreen({ navigation }) {
             <Text style={styles.selectedValue}>{selectedDept.title}</Text>
           </View>
 
-          {/* upload area */}
+          {/* upload area (generic cover) */}
           <View
             style={[
               styles.uploadBox,
               {
-                height: vNormalize(150),
+                height: vNormalize(120),
                 marginTop: vNormalize(14),
               },
             ]}
           >
             <View style={styles.uploadBorderLayer} />
             <View style={styles.uploadInner}>
-              <Text style={styles.uploadTitle}>Cover image</Text>
+              <Text style={styles.uploadTitle}>Department cover image</Text>
               <Text style={styles.uploadSub}>
-                This image appears on the student-facing department screen.
+                This could appear on the main Departments listing or hero screen
+                later.
               </Text>
 
               <TouchableOpacity
-                style={[
-                  styles.uploadButton,
-                  { marginTop: vNormalize(14) },
-                ]}
-                onPress={handleFakeUpload}
+                style={[styles.uploadButton, { marginTop: vNormalize(10) }]}
+                onPress={() =>
+                  Alert.alert(
+                    "Upload cover",
+                    "Later this will upload a per-department cover image."
+                  )
+                }
                 activeOpacity={0.9}
               >
-                <Text style={styles.uploadButtonText}>Upload / Change image</Text>
+                <Text style={styles.uploadButtonText}>
+                  Upload / Change cover
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* text editors */}
+          {/* text editors (highlight text) */}
           <View style={{ marginTop: vNormalize(18) }}>
             <Text style={styles.fieldLabel}>Highlight title</Text>
             <TextInput
@@ -408,8 +684,24 @@ export default function AdminScreen({ navigation }) {
             />
           </View>
 
+          {/* CCS-only extra sections */}
+          {isCCS ? (
+            <>
+              {renderCcsMediaSection()}
+              {renderCcsFeesSection()}
+            </>
+          ) : (
+            <View style={{ marginTop: vNormalize(18) }}>
+              <Text style={styles.sectionLabel}>Per-screen media</Text>
+              <Text style={styles.sectionHint}>
+                For {selectedDept.key}, we will add specific upload slots later.
+                For now, only CCS is fully wired in this prototype.
+              </Text>
+            </View>
+          )}
+
           {/* Save button with glow */}
-          <View style={{ marginTop: vNormalize(20), alignItems: "center" }}>
+          <View style={{ marginTop: vNormalize(24), alignItems: "center" }}>
             <Animated.View
               style={[
                 styles.saveGlow,
@@ -473,8 +765,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: "rgba(0,0,0,0.85)",
-    left:   -90,
-    marginBottom: -50,
   },
   headerBadgeText: {
     color: "#fff",
@@ -505,6 +795,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#777",
     letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  sectionHint: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#999",
   },
 
   deptChip: {
@@ -608,6 +904,89 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
     color: "#000",
+  },
+
+  // CCS media rows
+  mediaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  mediaLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#222",
+  },
+  mediaSub: {
+    fontSize: 11,
+    color: "#777",
+    marginTop: 2,
+  },
+  mediaThumb: {
+    marginLeft: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.16)",
+    backgroundColor: "rgba(255,255,255,0.9)",
+  },
+  mediaThumbActive: {
+    borderColor: "#ff423d",
+    backgroundColor: "rgba(255,66,61,0.08)",
+  },
+  mediaThumbText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#ff423d",
+  },
+
+  row: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  col: {
+    flex: 1,
+  },
+  smallInput: {
+    height: 40,
+    paddingHorizontal: 10,
+    marginTop: 6,
+  },
+
+  feesCard: {
+    marginTop: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    backgroundColor: "rgba(255,255,255,0.96)",
+    paddingVertical: 8,
+  },
+  feesTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#444",
+    paddingHorizontal: 10,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.04)",
+  },
+  feeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  feeLabel: {
+    flex: 1.2,
+    fontSize: 12,
+    color: "#222",
+  },
+  feeInput: {
+    flex: 1,
+    height: 34,
+    paddingHorizontal: 8,
+    textAlign: "right",
   },
 
   saveGlow: {

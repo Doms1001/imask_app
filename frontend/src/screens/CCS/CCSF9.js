@@ -1,4 +1,6 @@
-// CBAF9.js - BIG GRADIENT RECTANGLE with embedded FAQ inside the card (Firestore & images removed)
+// frontend/src/screens/CCS/CCSF9.js
+// CCS – FAQ screen (static content, CCS red theme)
+
 import React, { useRef, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -18,25 +20,32 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width, height } = Dimensions.get('window');
 const BACK = require('../../../assets/back.png');
 
-// Local screenshot (kept as a visual reference inside the card)
-const FAQ_IMG_URI = 'file:///mnt/data/572f4ca4-169c-4ab3-99b4-78368d7ae56d.png';
-
-export default function CBAF9({ navigation }) {
+export default function CCSF9({ navigation }) {
   const entrance = useRef(new Animated.Value(0)).current;
   const shimmer = useRef(new Animated.Value(-1)).current;
   const entranceRef = useRef(null);
   const shimmerLoopRef = useRef(null);
 
   useEffect(() => {
-    console.log('CBAF9 mounted (static FAQ card)');
-
-    entranceRef.current = Animated.timing(entrance, { toValue: 1, duration: 600, useNativeDriver: true });
+    entranceRef.current = Animated.timing(entrance, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    });
     entranceRef.current.start();
 
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: -1, duration: 0, useNativeDriver: true }),
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmer, {
+          toValue: -1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
       ])
     );
     shimmerLoopRef.current = loop;
@@ -46,11 +55,10 @@ export default function CBAF9({ navigation }) {
       entranceRef.current && entranceRef.current.stop && entranceRef.current.stop();
       shimmerLoopRef.current && shimmerLoopRef.current.stop && shimmerLoopRef.current.stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function navSafe(route) {
-    if (navigation && typeof navigation.navigate === 'function') navigation.navigate(route);
+    if (navigation?.navigate) navigation.navigate(route);
   }
 
   const shimmerTranslate = shimmer.interpolate({
@@ -58,20 +66,24 @@ export default function CBAF9({ navigation }) {
     outputRange: [-width * 0.6, width * 0.8],
   });
 
-  const cardScale = entrance.interpolate({ inputRange: [0, 1], outputRange: [0.996, 1] });
+  const cardScale = entrance.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.996, 1],
+  });
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+      />
 
-      {/* warm background */}
-      <LinearGradient colors={['#fff9f0', '#fff6ea']} style={s.bg} />
+      {/* CCS background */}
+      <LinearGradient colors={['#ffffff', '#fdf1f1']} style={s.bg} />
+      <View style={s.layerTopRight} />
+      <View style={s.layerBottomLeft} />
 
-      {/* decorative warm shapes */}
-      <LinearGradient colors={['#FFD54F', '#FFB300']} start={[0, 0]} end={[1, 1]} style={s.layerTopRight} />
-      <LinearGradient colors={['#FFE082', '#FF8A00']} start={[0, 0]} end={[1, 1]} style={s.layerBottomLeft} />
-
-      <TouchableWithoutFeedback onPress={() => navSafe('CBAF8')}>
+      {/* 🟥 BACK BUTTON → CCSF4 (fixed) */}
+      <TouchableWithoutFeedback onPress={() => navSafe('CCSF4')}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
         </View>
@@ -79,7 +91,12 @@ export default function CBAF9({ navigation }) {
 
       <View style={s.contentWrap}>
         <Animated.View style={[m.cardWrapper, { transform: [{ scale: cardScale }] }]}>
-          <LinearGradient colors={['#FFD54F', '#FFB300']} start={[0, 0]} end={[1, 1]} style={m.bigCard} />
+          <LinearGradient
+            colors={['#FF5F6D', '#FFC371']}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={m.bigCard}
+          />
 
           <Animated.View
             pointerEvents="none"
@@ -87,76 +104,89 @@ export default function CBAF9({ navigation }) {
               m.gloss,
               {
                 transform: [{ rotate: '22deg' }, { translateX: shimmerTranslate }],
-                opacity: shimmer.interpolate({ inputRange: [-1, 1], outputRange: [0.14, 0.26] }),
+                opacity: shimmer.interpolate({
+                  inputRange: [-1, 1],
+                  outputRange: [0.14, 0.26],
+                }),
               },
             ]}
           />
 
-          {/* Content inside the card */}
+          {/* Inner scrollable FAQ content */}
           <View style={m.innerContent}>
-            <ScrollView contentContainerStyle={m.scrollInner} showsVerticalScrollIndicator={false}>
-              {/* Screenshot reference at top */}
-             
-
-              {/* FAQ */}
+            <ScrollView
+              contentContainerStyle={m.scrollInner}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={m.faqCard}>
                 <Text style={m.faqTitle}>Frequently Asked Questions</Text>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: What are the admission requirements?</Text>
                   <Text style={m.a}>
-                    Application form, Form 138 (report card), PSA-authenticated Birth Certificate, 2x2 ID photos,
-                    and Certificate of Good Moral Character.
+                    Application form, Form 138 (report card), PSA Birth Certificate,
+                    2x2 ID photos, and Certificate of Good Moral Character.
                   </Text>
                   <View style={m.highlight}>
-                    <Text style={m.highlightText}>Tip: Submit Form 138 (report card) and valid IDs.</Text>
+                    <Text style={m.highlightText}>
+                      Tip: Submit Form 138 (report card) and valid IDs.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: Is there an entrance exam?</Text>
-                  <Text style={m.a}>No. Trimesx Colleges does not require an entrance exam for admission.</Text>
+                  <Text style={m.a}>
+                    No. Trimex Colleges does not require an entrance exam.
+                  </Text>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: How long do the programs take?</Text>
                   <Text style={m.a}>
-                    • College Program: 4 years (depending on the course).{'\n'}
-                    • Senior High School: 2 years (Grades 11 and 12).{'\n'}
-                    • TESDA Programs: From 1 to 2 years for longer courses.
+                    • College Program: 4 years (avg){'\n'}
+                    • Senior High School: 2 years{'\n'}
+                    • TESDA Programs: 1–2 years
                   </Text>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: Do graduates receive certificates?</Text>
                   <Text style={m.a}>
-                    Yes. Graduates are awarded degrees/diplomas. Some programs also issue TESDA certificates where applicable.
+                    Yes. Graduates receive diplomas, and TESDA certificates if applicable.
                   </Text>
                 </View>
 
                 <View style={m.qBlock}>
-                  <Text style={m.q}>Q: Can I transfer to Trimesx Colleges from another school?</Text>
+                  <Text style={m.q}>
+                    Q: Can I transfer from another school?
+                  </Text>
                   <Text style={m.a}>
-                    Yes — transfers are accepted for College, Senior High School, and TESDA programs subject to evaluation and required documents.
+                    Yes — subject to evaluation and document requirements.
                   </Text>
                 </View>
 
                 <View style={m.qBlock}>
-                  <Text style={m.q}>Q: How much is the downpayment for college enrollment?</Text>
+                  <Text style={m.q}>
+                    Q: How much is the downpayment?
+                  </Text>
                   <Text style={m.a}>
-                    The downpayment is P2,000, paid during registration and credited toward your total tuition fee.
+                    Downpayment is ₱2,000 during registration.
                   </Text>
                   <View style={m.highlight}>
-                    <Text style={m.highlightText}>Note: The downpayment must be settled before or during enrollment to secure your slot.</Text>
+                    <Text style={m.highlightText}>
+                      Must be paid to secure your slot.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: When must the downpayment be paid?</Text>
                   <Text style={m.a}>
-                    The downpayment must be settled before or during registration to secure your slot. Late payments may delay enrollment.
+                    During or before registration. Late payments may delay enrollment.
                   </Text>
                 </View>
+
               </View>
             </ScrollView>
           </View>
@@ -177,7 +207,8 @@ const s = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 18,
-    opacity: 0.38,
+    backgroundColor: '#2f2f2f',
+    opacity: 0.32,
   },
 
   layerBottomLeft: {
@@ -187,25 +218,28 @@ const s = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 160,
-    opacity: 0.6,
+    backgroundColor: '#ff2b2b',
+    opacity: 0.55,
   },
 
   back: {
     position: 'absolute',
     right: 14,
-    top: Platform.OS === 'android' ? 14 : 50,
+    top: Platform.OS === 'android' ? 18 : 50,
     width: 50,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 20,
   },
 
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
   contentWrap: {
-    marginTop: 48,
-    width: Math.min(420, width - 40),
-    height: Math.min(640, height * 0.82),
+    flex: 1,
+    marginTop: 72,
+    marginBottom: 24,
+    width: Math.min(420, width - 32),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -213,29 +247,18 @@ const s = StyleSheet.create({
 
 const m = StyleSheet.create({
   cardWrapper: {
-    width: Math.min(360, width - 56),
-    height: Math.min(640, height * 0.82),
+    flex: 1,
+    width: '100%',
     borderRadius: 22,
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginTop: -1,
-    shadowColor: '#8f5e00',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 18 },
-    shadowRadius: 32,
-    elevation: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-    backgroundColor: 'transparent',
+    shadowColor: '#ff4b4b',
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 14 },
+    shadowRadius: 30,
+    elevation: 12,
   },
 
-  bigCard: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 22,
-  },
+  bigCard: { position: 'absolute', width: '100%', height: '100%', borderRadius: 22 },
 
   gloss: {
     position: 'absolute',
@@ -243,57 +266,27 @@ const m = StyleSheet.create({
     left: -40,
     width: 180,
     height: 360,
-    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 90,
-    zIndex: 6,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
 
-  innerContent: {
-    position: 'relative',
-    width: '92%',
-    marginTop: 18,
-    paddingBottom: 18,
-  },
-
-  scrollInner: {
-    paddingBottom: 24,
-  },
-
-  screenshotWrap: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  screenshot: {
-    width: '100%',
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
+  innerContent: { width: '92%', marginTop: 18, paddingBottom: 18 },
+  scrollInner: { paddingBottom: 24 },
 
   faqCard: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 0,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderRadius: 10,
+    padding: 12,
   },
 
-  faqTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#222',
-    textAlign: 'left',
-  },
-
-  qBlock: {
-    marginBottom: 12,
-  },
+  faqTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10, color: '#222' },
+  qBlock: { marginBottom: 12 },
 
   q: {
     fontSize: 13,
     fontWeight: '700',
     color: '#111',
-    backgroundColor: '#F2F2F2',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 4,
@@ -301,7 +294,7 @@ const m = StyleSheet.create({
 
   a: {
     fontSize: 13,
-    color: '#333',
+    color: '#fefefe',
     marginTop: 8,
     lineHeight: 18,
     paddingHorizontal: 6,
@@ -314,9 +307,5 @@ const m = StyleSheet.create({
     borderRadius: 6,
   },
 
-  highlightText: {
-    fontSize: 12,
-    color: '#222',
-    fontWeight: '600',
-  },
+  highlightText: { fontSize: 12, fontWeight: '600', color: '#222' },
 });

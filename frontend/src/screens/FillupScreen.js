@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { createClient } from "@supabase/supabase-js";
+import { setCurrentVisitorName } from "../state/userSession"; // 🆕 ADD THIS
 
 const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_URL,
@@ -206,9 +207,13 @@ export default function FillupScreen({ navigation }) {
 
       if (error) throw error;
 
+      // 🆕 Save name globally so CCSF8 can read it
+      setCurrentVisitorName(trimmedName);
+
       showMessage("Information saved successfully!", "success");
 
       setTimeout(() => {
+        // keep your existing flow
         navigation.navigate("welcomingdept", { name: trimmedName });
       }, 700);
 
@@ -349,12 +354,12 @@ export default function FillupScreen({ navigation }) {
         <Animated.View
           style={[
             styles.square,
-          {
-            right: SCREEN_W * 0.18,
-            top: SCREEN_H * 0.14,
-            transform: [{ translateY: squareTransY }, { scale: squareScale }],
-          },
-        ]}
+            {
+              right: SCREEN_W * 0.18,
+              top: SCREEN_H * 0.14,
+              transform: [{ translateY: squareTransY }, { scale: squareScale }],
+            },
+          ]}
         />
 
         {/* Top title */}
