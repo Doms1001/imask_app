@@ -16,8 +16,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as ImagePicker from "expo-image-picker";
-import { uploadCcsMedia } from "../lib/ccsMediaHelpers";
-
+import {
+  uploadCcsMedia,
+  saveCcsFees,
+  loadCcsFees,
+  loadCcsMedia,       // 👈 NEW
+} from "../lib/ccsMediaHelpers";
 
 import COAlogo from "../../assets/COAlogo.png";
 import CCSlogo from "../../assets/CCSlogo.png";
@@ -93,7 +97,7 @@ export default function AdminScreen({ navigation }) {
   const [titleText, setTitleText] = useState("");
   const [bodyText, setBodyText] = useState("");
 
-  // CCS media local preview state (public_url once uploaded)
+  // CCS media local preview state (URL from Supabase)
   const [ccsMedia, setCcsMedia] = useState({
     newsMain: null,
     eventsTop: null,
@@ -104,10 +108,7 @@ export default function AdminScreen({ navigation }) {
     essentials: null,
   });
 
-  // which slot is currently uploading (to show "Uploading...")
-  const [uploadingSlot, setUploadingSlot] = useState(null);
-
-  // CCSF8-like config values (only UI for now)
+  // CCSF8-like config values
   const [ccsSem, setCcsSem] = useState("1st");
   const [ccsYear, setCcsYear] = useState("1");
   const [ccsAcadYear, setCcsAcadYear] = useState("2025–2026");
@@ -196,6 +197,44 @@ export default function AdminScreen({ navigation }) {
     ).start();
   }, [blobTop, blobBottom, cardOpacity, cardTranslateY, saveGlow]);
 
+  // ---------- LOAD CCS FEES + MEDIA WHEN CCS TAB ACTIVE ----------
+
+  useEffect(() => {
+    if (selectedDept.key !== "CCS") return;
+
+    (async () => {
+      try {
+        const [fees, media] = await Promise.all([
+          loadCcsFees(),
+          loadCcsMedia(),
+        ]);
+
+        if (fees) {
+          console.log("[AdminScreen] loaded CCS fees:", fees);
+
+          setCcsSem(fees.sem ?? "1st");
+          setCcsYear(fees.year ?? "1");
+          setCcsAcadYear(fees.acadYear ?? "2025–2026");
+          setCcsTuition(fees.tuition ?? "15000.00");
+          setCcsLab(fees.lab ?? "1200.00");
+          setCcsNonLab(fees.nonLab ?? "800.00");
+          setCcsMisc(fees.misc ?? "500.00");
+          setCcsNstp(fees.nstp ?? "200.00");
+          setCcsOtherFee(fees.otherFee ?? "0.00");
+          setCcsDiscount(fees.discount ?? "1000.00");
+          setCcsDown(fees.down ?? "3000.00");
+        }
+
+        if (media) {
+          console.log("[AdminScreen] loaded CCS media:", media);
+          setCcsMedia((prev) => ({ ...prev, ...media }));
+        }
+      } catch (e) {
+        console.log("[AdminScreen] load CCS data error:", e);
+      }
+    })();
+  }, [selectedDept.key]);
+
   const blobSize = Math.max(SCREEN_W * 0.9, 320);
   const blobTopTransX = blobTop.interpolate({
     inputRange: [0, 1],
@@ -232,45 +271,45 @@ export default function AdminScreen({ navigation }) {
     outputRange: [0.25, 0.6],
   });
 
-  // REAL image picker + upload to Supabase
-  const handleSelectImage = async (slotKey) => {
-    if (selectedDept.key !== "CCS") {
-      Alert.alert(
-        "Not yet supported",
-        "Per-screen uploads are currently wired only for CCS in this prototype."
-      );
-      return;
-    }
+  // ---------- REAL IMAGE PICKER + UPLOAD ----------
 
+  const handleSelectImage = async (slotKey) => {
     try {
-      // ask permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
+      console.log("[handleSelectImage] slot =", slotKey);
+
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
         Alert.alert(
-          "Permission needed",
-          "Please allow access to your photos to upload images."
+          "Permission required",
+          "Please allow gallery access to upload images."
         );
         return;
       }
 
-      // open gallery
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
       });
 
-      if (result.canceled) return;
-
-      const asset = result.assets && result.assets[0];
-      if (!asset?.uri) {
-        Alert.alert("Error", "Could not read image file.");
+      if (result.canceled) {
+        console.log("[handleSelectImage] user cancelled");
         return;
       }
 
-      setUploadingSlot(slotKey);
+      const uri = result.assets?.[0]?.uri;
+      console.log("[handleSelectImage] picked uri =", uri);
 
-      // upload to Supabase (bucket: department_images, table: ccs_media)
-      const publicUrl = await uploadCcsMedia(slotKey, asset.uri);
+      if (!uri) {
+        Alert.alert("Error", "No image URI returned.");
+        return;
+      }
+
+      const publicUrl = await uploadCcsMedia(slotKey, uri);
+
+      if (!publicUrl) {
+        Alert.alert("Upload failed", "Please try again.");
+        return;
+      }
 
       // update local preview
       setCcsMedia((prev) => ({
@@ -278,36 +317,42 @@ export default function AdminScreen({ navigation }) {
         [slotKey]: publicUrl,
       }));
 
-      Alert.alert("Uploaded", "Image updated successfully.");
+      Alert.alert("Success", "Image uploaded and saved.");
     } catch (e) {
       console.log("[handleSelectImage] error:", e);
-      Alert.alert("Upload failed", "Something went wrong. Please try again.");
-    } finally {
-      setUploadingSlot(null);
+      Alert.alert("Error", "Failed to pick or upload image.");
     }
   };
 
-  const handleSave = () => {
+  // ---------- SAVE CCS FEES ----------
+
+  const handleSave = async () => {
     if (selectedDept.key === "CCS") {
-      console.log("CCS highlight:", { titleText, bodyText });
-      console.log("CCS media slots:", ccsMedia);
-      console.log("CCS tuition config:", {
-        ccsSem,
-        ccsYear,
-        ccsAcadYear,
-        ccsTuition,
-        ccsLab,
-        ccsNonLab,
-        ccsMisc,
-        ccsNstp,
-        ccsOtherFee,
-        ccsDiscount,
-        ccsDown,
-      });
-      Alert.alert(
-        "Saved (UI only)",
-        "CCS settings logged in console. Later this can also be stored in Supabase."
-      );
+      const payload = {
+        sem: ccsSem,
+        year: ccsYear,
+        acadYear: ccsAcadYear,
+        tuition: ccsTuition,
+        lab: ccsLab,
+        nonLab: ccsNonLab,
+        misc: ccsMisc,
+        nstp: ccsNstp,
+        otherFee: ccsOtherFee,
+        discount: ccsDiscount,
+        down: ccsDown,
+      };
+
+      console.log("[handleSave] CCS highlight:", { titleText, bodyText });
+      console.log("[handleSave] CCS media slots:", ccsMedia);
+      console.log("[handleSave] CCS tuition payload:", payload);
+
+      const ok = await saveCcsFees(payload);
+
+      if (ok) {
+        Alert.alert("Saved", "CCS fees and media have been saved.");
+      } else {
+        Alert.alert("Error", "Failed to save CCS fees.");
+      }
     } else {
       Alert.alert(
         "Saved (UI only)",
@@ -326,8 +371,6 @@ export default function AdminScreen({ navigation }) {
 
         {CCS_MEDIA_SLOTS.map((slot) => {
           const hasImage = !!ccsMedia[slot.key];
-          const isUploading = uploadingSlot === slot.key;
-
           return (
             <View key={slot.key} style={styles.mediaRow}>
               <View style={{ flex: 1 }}>
@@ -339,14 +382,12 @@ export default function AdminScreen({ navigation }) {
                 style={[
                   styles.mediaThumb,
                   hasImage && styles.mediaThumbActive,
-                  isUploading && { opacity: 0.6 },
                 ]}
                 activeOpacity={0.9}
                 onPress={() => handleSelectImage(slot.key)}
-                disabled={isUploading}
               >
                 <Text style={styles.mediaThumbText}>
-                  {isUploading ? "Uploading..." : hasImage ? "Change" : "Upload"}
+                  {hasImage ? "Change" : "Upload"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -416,11 +457,7 @@ export default function AdminScreen({ navigation }) {
             { label: "NSTP / ROTC Fee", value: ccsNstp, setter: setCcsNstp },
             { label: "Other Fee", value: ccsOtherFee, setter: setCcsOtherFee },
             { label: "Discount", value: ccsDiscount, setter: setCcsDiscount },
-            {
-              label: "Down Payment",
-              value: ccsDown,
-              setter: setCcsDown,
-            },
+            { label: "Down Payment", value: ccsDown, setter: setCcsDown },
           ].map((row) => (
             <View key={row.label} style={styles.feeRow}>
               <Text style={styles.feeLabel}>{row.label}</Text>

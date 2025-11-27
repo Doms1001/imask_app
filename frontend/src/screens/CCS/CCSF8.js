@@ -59,6 +59,28 @@ export default function CCSF8({ navigation }) {
   const [discount, setDiscount] = useState("1000.00");
   const [downPayment, setDownPayment] = useState("3000.00");
 
+
+// 🔽 load remote config from Supabase
+  useEffect(() => {
+    (async () => {
+      const remote = await loadCcsFees();
+      if (!remote) return;
+
+      if (remote.sem) setSemester(remote.sem);
+      if (remote.year) setYear(remote.year);
+      if (remote.acadYear) setAcadYear(remote.acadYear);
+      if (remote.tuition) setTuition(remote.tuition);
+      if (remote.lab) setLab(remote.lab);
+      if (remote.nonLab) setNonLab(remote.nonLab);
+      if (remote.misc) setMisc(remote.misc);
+      if (remote.nstp) setNstp(remote.nstp);
+      if (remote.otherFee) setOtherFee(remote.otherFee);
+      if (remote.discount) setDiscount(remote.discount);
+      if (remote.downPayment) setDownPayment(remote.downPayment);
+    })();
+  }, []);
+
+
   const parseNum = (v) => {
     const n = parseFloat(String(v).replace(/[^0-9.-]+/g, ""));
     return isNaN(n) ? 0 : n;

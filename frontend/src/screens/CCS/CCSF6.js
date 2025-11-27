@@ -1,5 +1,5 @@
 // frontend/src/screens/CCS/CCSF6.js
-// CCSF6 – Events images (slots: "eventsTop", "eventsBottom")
+// CCS Events – two stacked rectangles using Supabase images.
 
 import React, { useEffect, useState } from "react";
 import {
@@ -11,46 +11,79 @@ import {
   Image,
   Dimensions,
   Platform,
+  Text,
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import { getCCSMediaUrl } from "../../lib/ccsMediaHelpers";
-
+import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
 
 export default function CCSF6({ navigation }) {
-  const [topUrl, setTopUrl] = useState(null);
-  const [bottomUrl, setBottomUrl] = useState(null);
+  const [eventsTopUri, setEventsTopUri] = useState(null);
+  const [eventsBottomUri, setEventsBottomUri] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isActive = true;
+
     (async () => {
       try {
-        const [t, b] = await Promise.all([
+        const [top, bottom] = await Promise.all([
           getCcsMediaUrl("eventsTop"),
           getCcsMediaUrl("eventsBottom"),
         ]);
-        setTopUrl(t);
-        setBottomUrl(b);
+        console.log("[CCSF6] eventsTop =", top);
+        console.log("[CCSF6] eventsBottom =", bottom);
+        if (!isActive) return;
+        setEventsTopUri(top);
+        setEventsBottomUri(bottom);
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     })();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   function navSafe(route) {
     if (navigation?.navigate) navigation.navigate(route);
   }
 
+  const renderCard = (uri) => (
+    <View style={m.card}>
+      <LinearGradient
+        colors={["#FF5F6D", "#FFC371"]}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={m.cardBg}
+      />
+      {uri && (
+        <Image
+          source={{ uri }}
+          style={m.cardImage}
+          resizeMode="cover"
+          onError={(e) =>
+            console.log("[CCSF6] card image error:", e.nativeEvent)
+          }
+        />
+      )}
+      {loading && (
+        <View style={m.loadingOverlay}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={s.screen}>
       <StatusBar
         barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
       />
-
       <LinearGradient colors={["#fff", "#f7f7f9"]} style={s.bg} />
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
@@ -60,65 +93,20 @@ export default function CCSF6({ navigation }) {
       </TouchableOpacity>
 
       <View style={s.contentWrap}>
-        {/* TOP event image */}
-        <View style={m.card}>
-          <LinearGradient
-            colors={["#FF5F6D", "#FFC371"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-          <BlurView intensity={22} tint="light" style={StyleSheet.absoluteFill} />
+        <Text style={s.title}>CCS Events</Text>
 
-          {topUrl && (
-            <Image
-              source={{ uri: topUrl }}
-              style={m.image}
-              resizeMode="cover"
-              onError={() => setTopUrl(null)}
-            />
-          )}
-
-          {loading && (
-            <View style={m.loadingOverlay}>
-              <ActivityIndicator color="#fff" />
-            </View>
-          )}
-        </View>
-
-        {/* BOTTOM event image */}
-        <View style={[m.card, { marginTop: 18 }]}>
-          <LinearGradient
-            colors={["#FF5F6D", "#FFC371"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-          <BlurView intensity={22} tint="light" style={StyleSheet.absoluteFill} />
-
-          {bottomUrl && (
-            <Image
-              source={{ uri: bottomUrl }}
-              style={m.image}
-              resizeMode="cover"
-              onError={() => setBottomUrl(null)}
-            />
-          )}
-
-          {loading && (
-            <View style={m.loadingOverlay}>
-              <ActivityIndicator color="#fff" />
-            </View>
-          )}
-        </View>
+        {renderCard(eventsTopUri)}
+        <View style={{ height: 16 }} />
+        {renderCard(eventsBottomUri)}
       </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#fff", alignItems: "center" },
+  screen: { flex: 1, backgroundColor: "#fff" },
   bg: { ...StyleSheet.absoluteFillObject },
+
   layerTopRight: {
     position: "absolute",
     right: -40,
@@ -138,6 +126,7 @@ const s = StyleSheet.create({
     backgroundColor: "#ff2b2b",
     opacity: 0.7,
   },
+
   back: {
     position: "absolute",
     right: 14,
@@ -151,33 +140,39 @@ const s = StyleSheet.create({
   backImg: { width: 34, height: 34, tintColor: "#fff" },
 
   contentWrap: {
-    marginTop: 110,
-    width: Math.min(420, width - 40),
+    marginTop: 100,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 14,
+    color: "#222",
   },
 });
 
 const m = StyleSheet.create({
   card: {
-    width: "100%",
-    height: (height * 0.28),
-    borderRadius: 22,
+    width: Math.min(360, width - 40),
+    height: height * 0.22,
+    borderRadius: 18,
     overflow: "hidden",
+    elevation: 8,
     shadowColor: "#000",
     shadowOpacity: 0.16,
-    shadowOffset: { width: 0, height: 14 },
-    shadowRadius: 24,
-    elevation: 10,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
-  image: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+  cardBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cardImage: {
+    ...StyleSheet.absoluteFillObject,
   },
   loadingOverlay: {
-    position: "absolute",
-    inset: 0,
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.16)",
+    backgroundColor: "rgba(0,0,0,0.18)",
   },
 });

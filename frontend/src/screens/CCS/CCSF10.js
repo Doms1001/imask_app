@@ -15,8 +15,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCCSMediaUrl } from "../../lib/ccsMediaHelpers";
-
+import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
@@ -30,14 +29,21 @@ export default function CCSF10({ navigation }) {
   }
 
   useEffect(() => {
+    let isActive = true;
+
     (async () => {
       try {
         const url = await getCcsMediaUrl("essentials");
-        setImgUrl(url);
+        console.log("[CCSF10] essentials url =", url);
+        if (isActive) setImgUrl(url);
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     })();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   return (
@@ -75,7 +81,9 @@ export default function CCSF10({ navigation }) {
               source={{ uri: imgUrl }}
               style={s.image}
               resizeMode="cover"
-              onError={() => setImgUrl(null)}
+              onError={(e) =>
+                console.log("[CCSF10] image error:", e.nativeEvent)
+              }
             />
           )}
 

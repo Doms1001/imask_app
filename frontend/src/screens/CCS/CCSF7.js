@@ -16,8 +16,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { getCCSMediaUrl } from "../../lib/ccsMediaHelpers";
-
+import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
@@ -29,6 +28,8 @@ export default function CCSF7({ navigation }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isActive = true;
+
     (async () => {
       try {
         const [a1, a2, a3] = await Promise.all([
@@ -36,13 +37,22 @@ export default function CCSF7({ navigation }) {
           getCcsMediaUrl("ann2"),
           getCcsMediaUrl("ann3"),
         ]);
+        console.log("[CCSF7] ann1 =", a1);
+        console.log("[CCSF7] ann2 =", a2);
+        console.log("[CCSF7] ann3 =", a3);
+
+        if (!isActive) return;
         setAnn1(a1);
         setAnn2(a2);
         setAnn3(a3);
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     })();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   function navSafe(route) {
@@ -63,7 +73,9 @@ export default function CCSF7({ navigation }) {
           source={{ uri: url }}
           style={m.slotImage}
           resizeMode="cover"
-          onError={() => {}}
+          onError={(e) =>
+            console.log("[CCSF7] slot image error:", e.nativeEvent)
+          }
         />
       )}
       {loading && (

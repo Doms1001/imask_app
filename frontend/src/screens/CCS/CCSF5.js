@@ -15,8 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCCSMediaUrl } from "../../lib/ccsMediaHelpers";
-
+import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
@@ -27,16 +26,27 @@ export default function CCSF5({ navigation }) {
   const [loadingImg, setLoadingImg] = useState(true);
 
   useEffect(() => {
-    Animated.timing(dummy, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    Animated.timing(dummy, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    let isActive = true;
 
     (async () => {
       try {
-        const url = await getCcsMediaUrl("newsMain"); // 🔑 from AdminScreen
-        setImageUrl(url);
+        const url = await getCcsMediaUrl("newsMain");
+        console.log("[CCSF5] newsMain url =", url);
+        if (isActive) setImageUrl(url);
       } finally {
-        setLoadingImg(false);
+        if (isActive) setLoadingImg(false);
       }
     })();
+
+    return () => {
+      isActive = false;
+    };
   }, [dummy]);
 
   function navSafe(route) {
@@ -61,36 +71,37 @@ export default function CCSF5({ navigation }) {
       </TouchableWithoutFeedback>
 
       {/* CONTENT */}
-      <View style={s.contentWrap}>
-        <View style={m.cardWrapper}>
-          {/* gradient base */}
-          <LinearGradient
-            colors={["#FF5F6D", "#FFC371"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={m.bigCard}
+      <View style={m.cardWrapper}>
+        {/* base gradient / fallback */}
+        <LinearGradient
+          colors={["#FF5F6D", "#FFC371"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={m.bigCard}
+        />
+
+        {/* fetched image overlay */}
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={m.image}
+            resizeMode="cover"
+            onError={(e) => {
+              console.log("[CCSF5] image onError:", e.nativeEvent);
+              setImageUrl(null);
+            }}
           />
+        )}
 
-          {/* fetched image overlay */}
-          {imageUrl && (
-            <Image
-              source={{ uri: imageUrl }}
-              style={m.image}
-              resizeMode="cover"
-              onError={() => setImageUrl(null)}
-            />
-          )}
+        {/* loading spinner while first loading */}
+        {loadingImg && (
+          <View style={m.loadingOverlay}>
+            <ActivityIndicator size="large" color="#ffffff" />
+          </View>
+        )}
 
-          {/* loading spinner while first loading */}
-          {loadingImg && (
-            <View style={m.loadingOverlay}>
-              <ActivityIndicator size="large" color="#ffffff" />
-            </View>
-          )}
-
-          {/* glossy shine */}
-          <Animated.View style={m.gloss} pointerEvents="none" />
-        </View>
+        {/* glossy shine */}
+        <Animated.View style={m.gloss} pointerEvents="none" />
       </View>
     </SafeAreaView>
   );
@@ -132,13 +143,6 @@ const s = StyleSheet.create({
     zIndex: 20,
   },
   backImg: { width: 34, height: 34, tintColor: "#fff" },
-
-  contentWrap: {
-    marginTop: 100,
-    width: Math.min(420, width - 40),
-    height: Math.min(560, height * 0.72),
-    alignItems: "center",
-  },
 });
 
 const m = StyleSheet.create({
