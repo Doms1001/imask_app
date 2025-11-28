@@ -20,7 +20,7 @@ import {
   uploadCcsMedia,
   saveCcsFees,
   loadCcsFees,
-  loadCcsMedia,       // 👈 NEW
+  loadCcsMedia, // 👈 NEW
 } from "../lib/ccsMediaHelpers";
 
 import COAlogo from "../../assets/COAlogo.png";
@@ -287,7 +287,8 @@ export default function AdminScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        // ✅ updated for SDK 54: use string array instead of MediaTypeOptions
+        mediaTypes: ["images"],
         quality: 0.8,
       });
 

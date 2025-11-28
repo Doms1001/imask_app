@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
+import { loadCcsMedia } from "../../lib/ccsMediaHelpers"; // ✅ use same helper as other screens
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
@@ -32,19 +32,20 @@ export default function CCSF7({ navigation }) {
 
     (async () => {
       try {
-        const [a1, a2, a3] = await Promise.all([
-          getCcsMediaUrl("ann1"),
-          getCcsMediaUrl("ann2"),
-          getCcsMediaUrl("ann3"),
-        ]);
-        console.log("[CCSF7] ann1 =", a1);
-        console.log("[CCSF7] ann2 =", a2);
-        console.log("[CCSF7] ann3 =", a3);
+        const media = await loadCcsMedia();
+        console.log("[CCSF7] media map =", media);
 
-        if (!isActive) return;
-        setAnn1(a1);
-        setAnn2(a2);
-        setAnn3(a3);
+        if (!isActive || !media) return;
+
+        setAnn1(media.ann1 || null);
+        setAnn2(media.ann2 || null);
+        setAnn3(media.ann3 || null);
+
+        console.log("[CCSF7] ann1 =", media.ann1);
+        console.log("[CCSF7] ann2 =", media.ann2);
+        console.log("[CCSF7] ann3 =", media.ann3);
+      } catch (e) {
+        console.log("[CCSF7] failed to load media:", e);
       } finally {
         if (isActive) setLoading(false);
       }
@@ -81,6 +82,11 @@ export default function CCSF7({ navigation }) {
       {loading && (
         <View style={m.loadingOverlay}>
           <ActivityIndicator color="#fff" />
+        </View>
+      )}
+      {!loading && !url && (
+        <View style={m.noImageOverlay}>
+          <Text style={m.noImageText}>No image set</Text>
         </View>
       )}
     </View>
@@ -197,5 +203,16 @@ const m = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.15)",
+  },
+  noImageOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noImageText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

@@ -20,12 +20,13 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCurrentVisitorName } from "../../state/userSession"; // 🆕 IMPORT
+import { getCurrentVisitorName } from "../../state/userSession"; // 🆕 Name source
+import { loadCcsFees } from "../../lib/ccsMediaHelpers";          // 🆕 IMPORT THIS
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
 // put your own gmail icon in assets and change this if needed
-const GMAIL_IMG = require("../../../assets/gmail.png"); 
+const GMAIL_IMG = require("../../../assets/gmail.png");
 
 export default function CCSF8({ navigation }) {
   const dummy = useRef(new Animated.Value(0)).current;
@@ -59,27 +60,30 @@ export default function CCSF8({ navigation }) {
   const [discount, setDiscount] = useState("1000.00");
   const [downPayment, setDownPayment] = useState("3000.00");
 
-
-// 🔽 load remote config from Supabase
+  // 🔽 load remote config from Supabase
   useEffect(() => {
     (async () => {
-      const remote = await loadCcsFees();
-      if (!remote) return;
+      try {
+        const remote = await loadCcsFees();
+        console.log("[CCSF8] remote CCS fees:", remote);
+        if (!remote) return;
 
-      if (remote.sem) setSemester(remote.sem);
-      if (remote.year) setYear(remote.year);
-      if (remote.acadYear) setAcadYear(remote.acadYear);
-      if (remote.tuition) setTuition(remote.tuition);
-      if (remote.lab) setLab(remote.lab);
-      if (remote.nonLab) setNonLab(remote.nonLab);
-      if (remote.misc) setMisc(remote.misc);
-      if (remote.nstp) setNstp(remote.nstp);
-      if (remote.otherFee) setOtherFee(remote.otherFee);
-      if (remote.discount) setDiscount(remote.discount);
-      if (remote.downPayment) setDownPayment(remote.downPayment);
+        if (remote.sem) setSemester(remote.sem);
+        if (remote.year) setYear(remote.year);
+        if (remote.acadYear) setAcadYear(remote.acadYear);
+        if (remote.tuition) setTuition(remote.tuition);
+        if (remote.lab) setLab(remote.lab);
+        if (remote.nonLab) setNonLab(remote.nonLab);
+        if (remote.misc) setMisc(remote.misc);
+        if (remote.nstp) setNstp(remote.nstp);
+        if (remote.otherFee) setOtherFee(remote.otherFee);
+        if (remote.discount) setDiscount(remote.discount);
+        if (remote.down) setDownPayment(remote.down); // key is "down" in payload
+      } catch (err) {
+        console.log("[CCSF8] failed to load remote fees:", err);
+      }
     })();
   }, []);
-
 
   const parseNum = (v) => {
     const n = parseFloat(String(v).replace(/[^0-9.-]+/g, ""));

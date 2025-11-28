@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Platform,
   Image,
   ScrollView,
   Animated,
@@ -24,27 +23,32 @@ const BACK = require("../../../assets/back.png");
 // ========================================
 const DATA = [
   {
-    title: "Bachelor of Science in Computer Science with Specialization in Cybersecurity",
+    title:
+      "Bachelor of Science in Computer Science with Specialization in Cybersecurity",
     subtitle: "Cyber & Security",
     desc: "Computer Science with Cybersecurity equips students to develop systems, secure networks, combat cyber threats, and create innovative security solutions.",
   },
   {
-    title: "Bachelor of Science in Computer Science with Specialization in Data & Analytics",
+    title:
+      "Bachelor of Science in Computer Science with Specialization in Data & Analytics",
     subtitle: "Data & Analytics",
     desc: "Focuses on programming, analytics, machine learning, and large-scale data processing.",
   },
   {
-    title: "Bachelor of Science in Information Technology (Mobile & Web Development)",
+    title:
+      "Bachelor of Science in Information Technology (Mobile & Web Development)",
     subtitle: "Mobile & Web",
     desc: "Specializes in building mobile apps, websites, front-end, and full-stack development.",
   },
   {
-    title: "Bachelor of Science in Information Technology (Multimedia Arts & Animation)",
+    title:
+      "Bachelor of Science in Information Technology (Multimedia Arts & Animation)",
     subtitle: "Media & Animation",
     desc: "Covers digital art, animation production, creative design fundamentals and effects.",
   },
   {
-    title: "Bachelor of Science in Information Technology (Network & System Administration)",
+    title:
+      "Bachelor of Science in Information Technology (Network & System Administration)",
     subtitle: "Networks & Systems",
     desc: "Specializes in network architecture, security, servers, cloud and IT infrastructure.",
   },
@@ -66,7 +70,6 @@ export default function CCSF2({ navigation }) {
   const VISIBLE_W = CARD_W + CARD_GAP;
 
   const scrollRef = useRef(null);
-  const [index, setIndex] = useState(0);
   const parallax = useRef(new Animated.Value(0)).current;
 
   // subtle breathing pulse
@@ -74,8 +77,16 @@ export default function CCSF2({ navigation }) {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1700, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 1700,
+          useNativeDriver: true,
+        }),
       ])
     ).start();
   }, []);
@@ -85,13 +96,12 @@ export default function CCSF2({ navigation }) {
     outputRange: [1, 1.045],
   });
 
-  function onMomentumScrollEnd(e) {
-    const x = e.nativeEvent.contentOffset.x;
-    setIndex(Math.round(x / VISIBLE_W));
-  }
-
   function handleScroll(e) {
     parallax.setValue(e.nativeEvent.contentOffset.x);
+  }
+
+  function navBack() {
+    navigation.navigate("CCSF1");
   }
 
   return (
@@ -129,12 +139,16 @@ export default function CCSF2({ navigation }) {
 
       {/* --- BACK BUTTON --- */}
       <TouchableOpacity
-        onPress={() => navigation.navigate("CCSF1")}
+        onPress={navBack}
         style={[s.backBtn, { top: vNormalize(10), right: normalize(12) }]}
       >
         <Image
           source={BACK}
-          style={{ width: normalize(32), height: normalize(32), tintColor: "#fff" }}
+          style={{
+            width: normalize(32),
+            height: normalize(32),
+            tintColor: "#fff",
+          }}
         />
       </TouchableOpacity>
 
@@ -155,7 +169,6 @@ export default function CCSF2({ navigation }) {
           contentContainerStyle={{
             paddingHorizontal: (SCREEN_W - CARD_W) / 2 - CARD_GAP / 2,
           }}
-          onMomentumScrollEnd={onMomentumScrollEnd}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: parallax } } }],
             { listener: handleScroll, useNativeDriver: false }
@@ -196,7 +209,13 @@ export default function CCSF2({ navigation }) {
                 {/* CARD BASE */}
                 <LinearGradient
                   colors={["#ff4d4d", "#8b0000"]}
-                  style={[s.card, { padding: normalize(20), borderRadius: normalize(22) }]}
+                  style={[
+                    s.card,
+                    {
+                      padding: normalize(20),
+                      borderRadius: normalize(22),
+                    },
+                  ]}
                 >
                   {/* CARD SHINE OVERLAY */}
                   <View style={s.shineOverlay} />
@@ -265,8 +284,8 @@ export default function CCSF2({ navigation }) {
       {/* --- BOTTOM PAGER --- */}
       <BottomPager
         navigation={navigation}
-        activeIndex={index}
         targets={["CCSF2", "CCSF3", "CCSF4"]}
+        theme="CCS" // keep CCS colors
       />
     </SafeAreaView>
   );

@@ -2,12 +2,30 @@
 // All CCS images + tuition config helpers
 
 import "react-native-url-polyfill/auto";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "../services/supabaseClient";
 
 const CCS_BUCKET = "department_images"; // your bucket
 const CCS_DEPT = "CCS";
+
+// Helper: safely get extension from a URI
+function getFileExtension(uri) {
+  if (!uri) return "png";
+
+  // Strip query params if any (e.g. file.png?someParam=123)
+  const withoutQuery = uri.split("?")[0];
+
+  const parts = withoutQuery.split(".");
+  if (parts.length < 2) return "png";
+
+  const ext = parts.pop().toLowerCase();
+  // basic whitelist
+  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+    return ext;
+  }
+  return "png";
+}
 
 /**
  * Upload one CCS image (newsMain, eventsTop, etc.) to Storage + department_media
@@ -21,49 +39,54 @@ export async function uploadCcsMedia(slot, localUri) {
       return null;
     }
 
-    // 1) Read file as base64
-    const base64 = await FileSystem.readAsStringAsync(localUri, {
+    // -------------------------------
+    // 1. Read file as binary (legacy API)
+    // -------------------------------
+    const fileInfo = await FileSystem.getInfoAsync(localUri);
+    if (!fileInfo.exists) {
+      console.log("[uploadCcsMedia] file does NOT exist");
+      return null;
+    }
+
+    const fileBase64 = await FileSystem.readAsStringAsync(localUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // 2) Convert base64 → ArrayBuffer (supabase-js accepts this in React Native)
-    const arrayBuffer = decode(base64);
+    // Convert base64 → binary (Uint8Array)
+    const binary = decode(fileBase64);
 
-    // 3) Build file name + content type
-    const extMatch = localUri.match(/\.([a-zA-Z0-9]+)$/);
-    const fileExt = (extMatch ? extMatch[1] : "jpg").toLowerCase();
-    const mime =
-      fileExt === "jpg" || fileExt === "jpeg"
-        ? "image/jpeg"
-        : fileExt === "png"
-        ? "image/png"
-        : `image/${fileExt}`;
+    // -------------------------------
+    // 2. Build file name
+    // -------------------------------
+    const fileExt = getFileExtension(localUri);
+    const fileName = `CCS/${slot}-${Date.now()}.${fileExt}`;
 
-    const path = `CCS/${slot}-${Date.now()}.${fileExt}`;
-
-    // 4) Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // -------------------------------
+    // 3. Upload to Supabase Storage
+    // -------------------------------
+    const { error: uploadError } = await supabase.storage
       .from(CCS_BUCKET)
-      .upload(path, arrayBuffer, {
-        contentType: mime,
+      .upload(fileName, binary, {
+        contentType: `image/${fileExt === "jpg" ? "jpeg" : fileExt}`,
         upsert: true,
       });
 
     if (uploadError) {
-      console.log("[uploadCcsMedia] storage upload error:", uploadError);
+      console.log("[uploadCcsMedia] upload failed:", uploadError);
       return null;
     }
 
-    console.log("[uploadCcsMedia] uploadData:", uploadData);
-
-    // 5) Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(CCS_BUCKET).getPublicUrl(path);
+    // -------------------------------
+    // 4. Get a public URL
+    // -------------------------------
+    const { data } = supabase.storage.from(CCS_BUCKET).getPublicUrl(fileName);
+    const publicUrl = data?.publicUrl;
 
     console.log("[uploadCcsMedia] publicUrl =", publicUrl);
 
-    // 6) Save mapping in department_media
+    // -------------------------------
+    // 5. Save mapping to DB
+    // -------------------------------
     const { error: dbError } = await supabase
       .from("department_media")
       .upsert(
@@ -76,13 +99,13 @@ export async function uploadCcsMedia(slot, localUri) {
       );
 
     if (dbError) {
-      console.log("[uploadCcsMedia] db upsert error:", dbError);
+      console.log("[uploadCcsMedia] DB error:", dbError);
       return null;
     }
 
     return publicUrl;
   } catch (err) {
-    console.log("[uploadCcsMedia] unexpected error:", err);
+    console.log("[uploadCcsMedia] FINAL ERROR:", err);
     return null;
   }
 }
