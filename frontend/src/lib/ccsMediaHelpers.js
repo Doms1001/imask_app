@@ -1,59 +1,69 @@
 // src/lib/ccsMediaHelpers.js
-// All CCS images + tuition config helpers (Resolution 2: REST + FileSystem)
+// All CCS images + tuition config helpers
 
 import "react-native-url-polyfill/auto";
 import * as FileSystem from "expo-file-system";
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "../services/supabaseClient";
+import { decode } from "base64-arraybuffer";
+import { supabase } from "../services/supabaseClient";
 
-const CCS_BUCKET = "department_images";   // your bucket name
+const CCS_BUCKET = "department_images"; // your bucket
 const CCS_DEPT = "CCS";
 
 /**
- * Upload one CCS image (newsMain, eventsTop, etc.) to Storage (REST API)
- * + save mapping in department_media.
- *
- * slot: "newsMain" | "eventsTop" | "eventsBottom" | "ann1" | "ann2" | "ann3" | "essentials"
- * localUri: file:///... from expo-image-picker
+ * Upload one CCS image (newsMain, eventsTop, etc.) to Storage + department_media
  */
 export async function uploadCcsMedia(slot, localUri) {
   try {
     console.log("[uploadCcsMedia] slot =", slot, "uri =", localUri);
-    if (!localUri) return null;
 
-    // --- 1) Build path & extension ---
-    const extGuess = localUri.split(".").pop()?.toLowerCase() || "jpg";
-    const fileExt = extGuess === "jpeg" ? "jpg" : extGuess; // normalize
-    const objectPath = `CCS/${slot}-${Date.now()}.${fileExt}`; // e.g. CCS/newsMain-123456789.png
-
-    // --- 2) Build REST upload URL for this object ---
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${CCS_BUCKET}/${objectPath}`;
-
-    // --- 3) Upload binary using expo-file-system ---
-    const result = await FileSystem.uploadAsync(uploadUrl, localUri, {
-      httpMethod: "POST",
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-      headers: {
-        "Content-Type": `image/${fileExt === "jpg" ? "jpeg" : fileExt}`,
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    });
-
-    console.log("[uploadCcsMedia] uploadAsync status:", result.status);
-
-    if (result.status >= 400) {
-      console.log("[uploadCcsMedia] uploadAsync body:", result.body);
-      throw new Error(`Upload failed status ${result.status}`);
+    if (!localUri) {
+      console.log("[uploadCcsMedia] no localUri, abort");
+      return null;
     }
 
-    // --- 4) Get public URL from Supabase client ---
+    // 1) Read file as base64
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // 2) Convert base64 → ArrayBuffer (supabase-js accepts this in React Native)
+    const arrayBuffer = decode(base64);
+
+    // 3) Build file name + content type
+    const extMatch = localUri.match(/\.([a-zA-Z0-9]+)$/);
+    const fileExt = (extMatch ? extMatch[1] : "jpg").toLowerCase();
+    const mime =
+      fileExt === "jpg" || fileExt === "jpeg"
+        ? "image/jpeg"
+        : fileExt === "png"
+        ? "image/png"
+        : `image/${fileExt}`;
+
+    const path = `CCS/${slot}-${Date.now()}.${fileExt}`;
+
+    // 4) Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(CCS_BUCKET)
+      .upload(path, arrayBuffer, {
+        contentType: mime,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.log("[uploadCcsMedia] storage upload error:", uploadError);
+      return null;
+    }
+
+    console.log("[uploadCcsMedia] uploadData:", uploadData);
+
+    // 5) Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from(CCS_BUCKET).getPublicUrl(objectPath);
+    } = supabase.storage.from(CCS_BUCKET).getPublicUrl(path);
 
     console.log("[uploadCcsMedia] publicUrl =", publicUrl);
 
-    // --- 5) Save mapping in department_media (upsert by department+slot) ---
+    // 6) Save mapping in department_media
     const { error: dbError } = await supabase
       .from("department_media")
       .upsert(
@@ -65,11 +75,14 @@ export async function uploadCcsMedia(slot, localUri) {
         { onConflict: "department,slot" }
       );
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.log("[uploadCcsMedia] db upsert error:", dbError);
+      return null;
+    }
 
     return publicUrl;
   } catch (err) {
-    console.log("[uploadCcsMedia] storage upload error:", err);
+    console.log("[uploadCcsMedia] unexpected error:", err);
     return null;
   }
 }
@@ -79,7 +92,6 @@ export async function uploadCcsMedia(slot, localUri) {
  */
 export async function getCcsMediaUrl(slot) {
   try {
-    console.log("[getCcsMediaUrl] slot =", slot);
     const { data, error } = await supabase
       .from("department_media")
       .select("image_url")
@@ -97,7 +109,7 @@ export async function getCcsMediaUrl(slot) {
 }
 
 /**
- * OPTIONAL helper: load all CCS media at once (if you ever want it)
+ * Load *all* CCS media as { slot: url, ... } – so AdminScreen can preload previews
  */
 export async function loadCcsMedia() {
   try {
@@ -107,10 +119,12 @@ export async function loadCcsMedia() {
       .eq("department", CCS_DEPT);
 
     if (error) throw error;
+    if (!data) return {};
+
     const map = {};
-    (data || []).forEach((row) => {
+    for (const row of data) {
       map[row.slot] = row.image_url;
-    });
+    }
     console.log("[loadCcsMedia] loaded media:", map);
     return map;
   } catch (err) {
@@ -121,6 +135,8 @@ export async function loadCcsMedia() {
 
 /**
  * Save CCS tuition + fees (used by AdminScreen → CCSF8)
+ * payload example:
+ * { sem:'1st', year:'1', acadYear:'2027-2028', tuition:'150', ... }
  */
 export async function saveCcsFees(payload) {
   try {
@@ -131,7 +147,7 @@ export async function saveCcsFees(payload) {
       .upsert(
         {
           department: CCS_DEPT,
-          slot: 8, // CCSF8 slot
+          slot: "8", // CCSF8 slot
           text: JSON.stringify(payload),
         },
         { onConflict: "department,slot" }
@@ -154,14 +170,12 @@ export async function loadCcsFees() {
       .from("department_content")
       .select("text")
       .eq("department", CCS_DEPT)
-      .eq("slot", 8)
+      .eq("slot", "8")
       .maybeSingle();
 
     if (error) throw error;
     if (!data || !data.text) return null;
-    const parsed = JSON.parse(data.text);
-    console.log("[loadCcsFees] loaded fees:", parsed);
-    return parsed;
+    return JSON.parse(data.text);
   } catch (err) {
     console.log("[loadCcsFees] error:", err);
     return null;
