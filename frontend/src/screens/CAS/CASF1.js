@@ -1,111 +1,189 @@
-// CASF1.js (Violet Theme + Animated Background) — FIXED
-import React, { useRef, useEffect } from "react";
+// frontend/src/screens/CAS/CASF1.js
+
+import React from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
   Platform,
   Image,
-  Animated,
+  useWindowDimensions,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
-const { width } = Dimensions.get("window");
-const CONTAINER_W = Math.min(380, width - 24);
-
-// Adjust if your arrow is in another path
 const ARROW_IMG = require("../../../assets/back.png");
+const CASlogo = require("../../../assets/CASlogo.png");
 
-export default function CASF1Shapes({ navigation }) {
-  // Floating animation value
-  const floatAnim = useRef(new Animated.Value(0)).current;
+export default function CASF1({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
-  useEffect(() => {
-    // simple up / down loop
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 12,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: -12,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [floatAnim]);
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const scale = SCREEN_W / BASE_W;
+  const vScale = SCREEN_H / BASE_H;
+  const normalize = (size) => size * scale;
+  const vNormalize = (size) => size * vScale;
 
-  // alternate translate for the second circle (invert)
-  const floatAnimInverted = floatAnim.interpolate({
-    inputRange: [-12, 12],
-    outputRange: [12, -12],
-  });
+  const CARD_W = Math.min(SCREEN_W * 0.9, 380);
+  const CARD_H = vNormalize(220);
+  const RADIUS = normalize(22);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView
+      style={[
+        styles.screen,
+        {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       <StatusBar
         barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
+        translucent={false}
       />
 
-      {/* Animated violet background circles */}
-      <Animated.View
+      {/* Background shapes (CAS violet theme) */}
+      <View
         style={[
-          styles.floatingCircle1,
-          { transform: [{ translateY: floatAnim }] },
+          styles.topLeftCircle,
+          {
+            width: normalize(120),
+            height: normalize(120),
+            borderRadius: normalize(60),
+            left: normalize(12),
+            top: vNormalize(8),
+          },
         ]}
       />
-      <Animated.View
+      <View
         style={[
-          styles.floatingCircle2,
-          { transform: [{ translateY: floatAnimInverted }] },
+          styles.topRightLightRect,
+          {
+            width: normalize(100),
+            height: normalize(100),
+            right: normalize(-4),
+            top: vNormalize(8),
+            borderRadius: normalize(8),
+          },
         ]}
       />
-
-      {/* Top violet shapes */}
-      <View style={styles.topLeftCircle} />
-      <View style={styles.topRightLight} />
-      <View style={styles.topRightDark} />
+      <View
+        style={[
+          styles.topRightDarkRect,
+          {
+            width: normalize(70),
+            height: normalize(70),
+            right: normalize(-4),
+            top: vNormalize(80),
+          },
+        ]}
+      />
 
       {/* Main content */}
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          {
+            width: CARD_W,
+            marginTop: vNormalize(110),
+          },
+        ]}
+      >
         <View style={styles.cardWrap}>
-          <LinearGradient
-            colors={["#9d4edd", "#5a189a"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={styles.card}
+          <View
+            style={[
+              styles.cardInner,
+              {
+                width: CARD_W,
+                height: CARD_H,
+                borderRadius: RADIUS,
+              },
+            ]}
           >
-            {/* Watermark */}
-            <View style={styles.watermarkGroup}>
-              <View style={styles.watermarkCircleLarge} />
-              <View style={styles.watermarkInnerArc} />
-            </View>
+            {/* Full Background Logo (CAS) */}
+            <Image
+              source={CASlogo}
+              resizeMode="cover"
+              style={[
+                styles.cardImage,
+                {
+                  borderRadius: RADIUS,
+                },
+              ]}
+            />
 
+            {/* Shine overlay */}
+            <LinearGradient
+              colors={["rgba(255,255,255,0.45)", "rgba(255,255,255,0)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.cardShine,
+                {
+                  borderRadius: RADIUS,
+                },
+              ]}
+            />
+
+            {/* CAS Title */}
             <View style={styles.titleWrap}>
-              <Text style={styles.ccsText}>C.A.S</Text>
-              <Text style={styles.subtitle}>College of Arts and Science</Text>
+              <Text
+                style={[
+                  styles.casText,
+                  { fontSize: normalize(70) },
+                ]}
+              >
+                C.A.S
+              </Text>
+
+              <Text
+                style={[
+                  styles.subtitle,
+                  { fontSize: normalize(14), marginTop: vNormalize(-8) },
+                ]}
+              >
+                College of Arts and Science
+              </Text>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
-        <Text style={styles.description}>
-          This track is for students who plan to pursue a college degree. It
-          provides a strong foundation in core subjects and includes
+        {/* Description */}
+        <Text
+          style={[
+            styles.description,
+            {
+              fontSize: normalize(14),
+              lineHeight: vNormalize(22),
+              marginTop: vNormalize(22),
+            },
+          ]}
+        >
+          This track is for students who plan to pursue a college degree.
+          It provides a strong foundation in core subjects and includes
           specialized strands to suit various interests.
         </Text>
       </View>
 
-      {/* Proceed button */}
-      <View style={styles.bottomArea}>
+      {/* Bottom proceed button (violet gradient) */}
+      <View
+        style={[
+          styles.bottomArea,
+          {
+            paddingBottom: vNormalize(28),
+          },
+        ]}
+      >
         <TouchableOpacity
-          style={styles.proceedWrapper}
+          style={[
+            styles.proceedWrapper,
+            { width: Math.min(SCREEN_W * 0.88, 340) },
+          ]}
           activeOpacity={0.86}
           onPress={() => navigation.navigate("CASF2")}
         >
@@ -113,20 +191,51 @@ export default function CASF1Shapes({ navigation }) {
             colors={["#7b2cbf", "#9d4edd"]}
             start={[0, 0]}
             end={[1, 1]}
-            style={styles.proceedBtn}
+            style={[
+              styles.proceedBtn,
+              {
+                paddingVertical: vNormalize(18),
+                borderRadius: normalize(26),
+              },
+            ]}
           >
-            <Text style={styles.proceedText}>Proceed</Text>
+            <Text
+              style={[
+                styles.proceedText,
+                { fontSize: normalize(18) },
+              ]}
+            >
+              Proceed
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
-      {/* Back button */}
+      {/* Back Button (same placement as CCSF1) */}
       <TouchableOpacity
-        style={styles.backBtn}
+        style={[
+          styles.backBtn,
+          {
+            right: normalize(12),
+            top: vNormalize(10),
+            width: normalize(50),
+            height: normalize(50),
+          },
+        ]}
         onPress={() => navigation.navigate("Onboarding")}
         activeOpacity={0.85}
       >
-        <Image source={ARROW_IMG} style={styles.backImage} resizeMode="contain" />
+        <Image
+          source={ARROW_IMG}
+          resizeMode="contain"
+          style={[
+            styles.backImage,
+            {
+              width: normalize(40),
+              height: normalize(40),
+            },
+          ]}
+        />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -135,170 +244,119 @@ export default function CASF1Shapes({ navigation }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f4e7ff",
+    backgroundColor: "#f4e7ff", // light violet background
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  /* Animated floating background circles */
-  floatingCircle1: {
-    position: "absolute",
-    top: 140,
-    left: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 999,
-    backgroundColor: "#d5b3ff",
-    opacity: 0.25,
-  },
-  floatingCircle2: {
-    position: "absolute",
-    top: 300,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 999,
-    backgroundColor: "#c59bff",
-    opacity: 0.22,
-  },
-
-  /* Top shapes */
+  /* background shapes - CAS violet theme */
   topLeftCircle: {
     position: "absolute",
-    left: 12,
-    top: 8,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     backgroundColor: "#b185ff",
     zIndex: 2,
   },
-  topRightLight: {
+  topRightLightRect: {
     position: "absolute",
-    right: -4,
-    top: 8,
-    width: 100,
-    height: 100,
-    borderRadius: 6,
     backgroundColor: "#c8a2ff",
     zIndex: 2,
   },
-  topRightDark: {
+  topRightDarkRect: {
     position: "absolute",
-    right: -4,
-    top: 80,
-    width: 70,
-    height: 70,
     backgroundColor: "#4c1d95",
     zIndex: 1,
   },
 
   content: {
-    width: CONTAINER_W,
     alignItems: "center",
-    marginTop: 110,
   },
 
+  /* card */
   cardWrap: {
     width: "100%",
-    borderRadius: 18,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 10,
   },
-
-  card: {
-    width: "100%",
-    minHeight: 200,
-    borderRadius: 18,
-    paddingVertical: 25,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
+  cardInner: {
     overflow: "hidden",
-  },
-
-  /* watermark */
-  watermarkGroup: {
-    position: "absolute",
-    top: -10,
-    width: "150%",
-    height: "150%",
+    position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0.12,
   },
-  watermarkCircleLarge: {
-    width: "80%",
-    height: "80%",
-    borderRadius: 999,
-    backgroundColor: "#fff",
-    opacity: 0.1,
-  },
-  watermarkInnerArc: {
+  cardImage: {
+    width: "100%",
+    height: "100%",
     position: "absolute",
-    width: "55%",
-    height: "55%",
-    borderRadius: 999,
-    borderWidth: 10,
-    borderColor: "#fff",
-    opacity: 0.07,
-    transform: [{ translateY: 18 }],
+  },
+  cardShine: {
+    position: "absolute",
+    width: "160%",
+    height: "70%",
+    top: -20,
+    left: -20,
+    transform: [{ rotate: "-18deg" }],
+    opacity: 0.6,
   },
 
+  /* Title */
   titleWrap: {
+    position: "absolute",
+    bottom: "12%",
     alignItems: "center",
+    zIndex: 20,
   },
-  ccsText: {
-    color: "#fff",
-    fontSize: 90,
+  casText: {
+    color: "#ffffff",
     fontWeight: "900",
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 6,
   },
   subtitle: {
     color: "rgba(255,255,255,0.92)",
-    fontSize: 15,
+    fontWeight: "600",
   },
 
   description: {
-    marginTop: 22,
     textAlign: "center",
     color: "#222",
-    fontSize: 15,
-    lineHeight: 22,
     paddingHorizontal: 8,
   },
 
   bottomArea: {
     width: "100%",
     alignItems: "center",
-    paddingBottom: 28,
+    justifyContent: "flex-end",
   },
   proceedWrapper: {
-    width: Math.min(340, width - 48),
+    alignSelf: "center",
   },
   proceedBtn: {
-    paddingVertical: 20,
-    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 8,
   },
   proceedText: {
     color: "#fff",
-    fontSize: 20,
     fontWeight: "700",
   },
 
   backBtn: {
     position: "absolute",
-    left: 12,
-    top: 12,
-    width: 44,
-    height: 44,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 999,
+    marginTop: 45,
   },
   backImage: {
-    width: 28,
-    height: 28,
     tintColor: "#ffffff",
+    opacity: 1,
   },
 });

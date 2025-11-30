@@ -1,3 +1,6 @@
+// frontend/src/screens/COE/COEF3.js
+// COEF3 — Events / News / Announcements hub (based on CCSF3, COE theme)
+
 import React, { useRef, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -16,7 +19,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import BottomPager from '../../components/BottomPager';
 
 const { width, height } = Dimensions.get('window');
-const LOGO = require('../../../assets/CCSlogo.png');
 const BACK = require('../../../assets/back.png');
 
 const IMG_NEWS = require('../../../assets/news.png');
@@ -61,13 +63,16 @@ export default function COEF3({ navigation }) {
     );
     Animated.stagger(110, seq).start();
 
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.timing(shimmer, {
         toValue: 1,
         duration: 1800,
         useNativeDriver: true,
       })
-    ).start();
+    );
+    loop.start();
+
+    return () => loop.stop && loop.stop();
   }, []);
 
   function makeResponder(i) {
@@ -86,9 +91,9 @@ export default function COEF3({ navigation }) {
         Animated.parallel([
           Animated.spring(tilt[i].x, { toValue: 0, useNativeDriver: false }),
           Animated.spring(tilt[i].y, { toValue: 0, useNativeDriver: false }),
-          Animated.spring(pressScales[i], { toValue: 1, useNativeDriver: true })
+          Animated.spring(pressScales[i], { toValue: 1, useNativeDriver: true }),
         ]).start();
-      }
+      },
     });
   }
 
@@ -130,15 +135,26 @@ export default function COEF3({ navigation }) {
   const MiddlePanel = () => (
     <View style={m.container}>
       <View style={m.leftColumn}>
-
         {/* NEWS */}
         <Animated.View {...responders[0].panHandlers} style={[m.cardWrapper, cardAnimatedStyle(0)]}>
           <Animated.View style={[m.card, m.gradientCardTop]}>
-            <LinearGradient colors={["#FF5F6D", "#FFC371"]} start={[0,0]} end={[1,1]} style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={['#ff9800', '#ffb74d']} // COE orange
+              start={[0, 0]}
+              end={[1, 1]}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={m.innerShadow} />
-            <Animated.View style={[m.gloss, { opacity: 0.28, transform: [{ translateX: shimmerTranslate }, { rotate: '22deg' }] }]} />
+            <Animated.View
+              style={[
+                m.gloss,
+                { opacity: 0.28, transform: [{ translateX: shimmerTranslate }, { rotate: '22deg' }] },
+              ]}
+            />
             <TouchableWithoutFeedback onPress={() => handlePress(0, 'COEF5')}>
-              <View style={m.centered}><Image source={IMG_NEWS} style={m.bigImage} /></View>
+              <View style={m.centered}>
+                <Image source={IMG_NEWS} style={m.bigImage} />
+              </View>
             </TouchableWithoutFeedback>
             <Animated.View style={[m.cardGlow, { opacity: glowOpac[0] }]} />
           </Animated.View>
@@ -147,11 +163,23 @@ export default function COEF3({ navigation }) {
         {/* ANNOUNCEMENT */}
         <Animated.View {...responders[1].panHandlers} style={[m.cardWrapper, cardAnimatedStyle(1)]}>
           <Animated.View style={[m.card, m.gradientCardSmall]}>
-            <LinearGradient colors={["#FF7E5F", "#FEB472"]} start={[0,0]} end={[1,1]} style={StyleSheet.absoluteFill} />
+            <LinearGradient
+              colors={['#ffa726', '#ffcc80']}
+              start={[0, 0]}
+              end={[1, 1]}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={m.innerShadowSmall} />
-            <Animated.View style={[m.glossSmall, { opacity: 0.22, transform: [{ translateX: shimmerTranslate }, { rotate: '18deg' }] }]} />
+            <Animated.View
+              style={[
+                m.glossSmall,
+                { opacity: 0.22, transform: [{ translateX: shimmerTranslate }, { rotate: '18deg' }] },
+              ]}
+            />
             <TouchableWithoutFeedback onPress={() => handlePress(1, 'COEF7')}>
-              <View style={m.centered}><Image source={IMG_ANNOUNCE} style={m.smallImage} /></View>
+              <View style={m.centered}>
+                <Image source={IMG_ANNOUNCE} style={m.smallImage} />
+              </View>
             </TouchableWithoutFeedback>
             <Animated.View style={[m.cardGlow, { opacity: glowOpac[1] }]} />
           </Animated.View>
@@ -161,11 +189,23 @@ export default function COEF3({ navigation }) {
       {/* EVENT */}
       <Animated.View {...responders[2].panHandlers} style={[m.cardWrapper, cardAnimatedStyle(2)]}>
         <Animated.View style={[m.card, m.gradientCardRight]}>
-          <LinearGradient colors={["#FF416C", "#FFB75E"]} start={[0,0]} end={[1,1]} style={StyleSheet.absoluteFill} />
+          <LinearGradient
+            colors={['#f57c00', '#ffb74d']}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={StyleSheet.absoluteFill}
+          />
           <View style={m.innerShadowRight} />
-          <Animated.View style={[m.gloss, { opacity: 0.22, transform: [{ translateX: shimmerTranslate }, { rotate: '20deg' }] }]} />
+          <Animated.View
+            style={[
+              m.gloss,
+              { opacity: 0.22, transform: [{ translateX: shimmerTranslate }, { rotate: '20deg' }] },
+            ]}
+          />
           <TouchableWithoutFeedback onPress={() => handlePress(2, 'COEF6')}>
-            <View style={m.centered}><Image source={IMG_EVENT} style={m.eventImage} /></View>
+            <View style={m.centered}>
+              <Image source={IMG_EVENT} style={m.eventImage} />
+            </View>
           </TouchableWithoutFeedback>
           <Animated.View style={[m.cardGlow, { opacity: glowOpac[2] }]} />
         </Animated.View>
@@ -177,50 +217,159 @@ export default function COEF3({ navigation }) {
     <SafeAreaView style={s.screen}>
       <StatusBar barStyle="light-content" />
 
-      <LinearGradient colors={["#fff", "#f7f7f9"]} style={s.bg} />
+      {/* COE background: light + orange/black shapes, same layout as CCSF3 */}
+      <LinearGradient colors={['#ffffff', '#fff5e6']} style={s.bg} />
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
       <TouchableWithoutFeedback onPress={() => navSafe('COEF2')}>
-        <View style={s.back}><Image source={BACK} style={s.backImg} /></View>
+        <View style={s.back}>
+          <Image source={BACK} style={s.backImg} />
+        </View>
       </TouchableWithoutFeedback>
 
       <View style={s.contentWrap} />
 
       <MiddlePanel />
 
-      <BottomPager navigation={navigation} activeIndex={1} targets={["COEF2", "COEF3", "COEF4"]} />
+      <BottomPager navigation={navigation} activeIndex={1} targets={['COEF2', 'COEF3', 'COEF4']} />
     </SafeAreaView>
   );
 }
 
 /* styles */
 const s = StyleSheet.create({
-  screen:{ flex:1, backgroundColor:'#fff', alignItems:'center' },
-  bg:{ ...StyleSheet.absoluteFillObject },
-  layerTopRight:{ position:'absolute', right:-40, top:-20, width:220, height:220, backgroundColor:'#2f2f2f', borderRadius:18 },
-  layerBottomLeft:{ position:'absolute', left:-60, bottom:-80, width:260, height:260, backgroundColor:'#ff2b2b', borderRadius:160, opacity:0.7 },
-  back:{ position:'absolute', right:14, top:50, width:50, height:48, alignItems:'center', justifyContent:'center' },
-  backImg:{ width:34, height:34, tintColor:'#fff' },
-  contentWrap:{ marginTop:36, width:Math.min(420,width-28), height:Math.min(560,height*0.72) },
+  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  bg: { ...StyleSheet.absoluteFillObject },
+
+  // COE: black + orange
+  layerTopRight: {
+    position: 'absolute',
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    backgroundColor: '#212121',
+    borderRadius: 18,
+  },
+  layerBottomLeft: {
+    position: 'absolute',
+    left: -60,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    backgroundColor: '#ff9800',
+    borderRadius: 160,
+    opacity: 0.8,
+  },
+
+  back: {
+    position: 'absolute',
+    right: 14,
+    top: Platform.OS === 'android' ? 14 : 50,
+    width: 50,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backImg: { width: 34, height: 34, tintColor: '#fff' },
+
+  contentWrap: {
+    marginTop: 36,
+    width: Math.min(420, width - 28),
+    height: Math.min(560, height * 0.72),
+  },
 });
 
 const m = StyleSheet.create({
-  container:{ position:'absolute', top:0, bottom:0, left:8, right:8, flexDirection:'row', justifyContent:'center', alignItems:'center' },
-  leftColumn:{ flexDirection:'column', justifyContent:'space-between', height:320, marginRight:18 },
-  cardWrapper:{ width:160, alignItems:'center' },
-  card:{ width:160, borderRadius:18, padding:12, backgroundColor:'#fff', shadowColor:'#000', shadowOpacity:0.18, shadowOffset:{width:0,height:10}, shadowRadius:20, elevation:10, overflow:'hidden' },
-  gradientCardTop:{ height:180 },
-  gradientCardSmall:{ width:140, height:120, marginTop:12, borderRadius:14 },
-  gradientCardRight:{ width:160, height:240, borderRadius:18 },
-  innerShadow:{ position:'absolute', top:0, left:0, right:0, height:'52%', backgroundColor:'rgba(0,0,0,0.06)' },
-  innerShadowSmall:{ position:'absolute', top:0, left:0, right:0, height:'46%', backgroundColor:'rgba(0,0,0,0.05)' },
-  innerShadowRight:{ position:'absolute', top:0, left:0, right:0, height:'48%', backgroundColor:'rgba(0,0,0,0.05)' },
-  gloss:{ position:'absolute', left:-70, top:-30, width:100, height:240, backgroundColor:'rgba(255,255,255,0.26)', borderRadius:80 },
-  glossSmall:{ position:'absolute', left:-50, top:-20, width:80, height:160, backgroundColor:'rgba(255,255,255,0.20)', borderRadius:70 },
-  cardGlow:{ position:'absolute', bottom:-8, width:160, height:22, borderRadius:12, backgroundColor:'rgba(240,70,120,0.18)' },
-  bigImage:{ width:120, height:120 },
-  smallImage:{ width:100, height:70 },
-  eventImage:{ width:120, height:120 },
-  centered:{ alignItems:'center', justifyContent:'center', width:'100%', height:'100%' },
+  container: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leftColumn: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: 320,
+    marginRight: 18,
+  },
+  cardWrapper: { width: 160, alignItems: 'center' },
+  card: {
+    width: 160,
+    borderRadius: 18,
+    padding: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  gradientCardTop: { height: 180 },
+  gradientCardSmall: { width: 140, height: 120, marginTop: 12, borderRadius: 14 },
+  gradientCardRight: { width: 160, height: 240, borderRadius: 18 },
+
+  innerShadow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '52%',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  innerShadowSmall: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '46%',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  innerShadowRight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '48%',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+
+  gloss: {
+    position: 'absolute',
+    left: -70,
+    top: -30,
+    width: 100,
+    height: 240,
+    backgroundColor: 'rgba(255,255,255,0.26)',
+    borderRadius: 80,
+  },
+  glossSmall: {
+    position: 'absolute',
+    left: -50,
+    top: -20,
+    width: 80,
+    height: 160,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    borderRadius: 70,
+  },
+
+  cardGlow: {
+    position: 'absolute',
+    bottom: -8,
+    width: 160,
+    height: 22,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,152,0,0.22)', // orange glow
+  },
+
+  bigImage: { width: 120, height: 120 },
+  smallImage: { width: 100, height: 70 },
+  eventImage: { width: 120, height: 120 },
+  centered: { alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' },
 });

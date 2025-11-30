@@ -1,230 +1,182 @@
-// CBAF6.js - BIG GRADIENT RECTANGLE (CBAF theme) with Firestore-synced image
-import React, { useRef, useEffect, useState } from 'react';
+// frontend/src/screens/CBA/CBAF6.js
+// CBAF6 – CBA Events (two stacked rectangles, slots: "cba_eventsTop", "cba_eventsBottom")
+
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
   StatusBar,
   StyleSheet,
-  TouchableWithoutFeedback,
+  TouchableOpacity,
   Image,
   Dimensions,
-  Animated,
   Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // added
+  Text,
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
 
-// Note: original code used Firestore helpers (doc, onSnapshot, db).
-// Keep your existing Firestore imports where this file is used.
-
-const { width, height } = Dimensions.get('window');
-const BACK = require('../../../assets/back.png');
+const { width, height } = Dimensions.get("window");
+const BACK = require("../../../assets/back.png");
 
 export default function CBAF6({ navigation }) {
-  const [imageUrl, setImageUrl] = useState(null);
-  const [fsErr, setFsErr] = useState(null);
-
-  const entrance = useRef(new Animated.Value(0)).current;
-  const shimmer = useRef(new Animated.Value(-1)).current;
-  const entranceRef = useRef(null);
-  const shimmerLoopRef = useRef(null);
+  const [eventsTopUri, setEventsTopUri] = useState(null);
+  const [eventsBottomUri, setEventsBottomUri] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // entrance animation
-    entranceRef.current = Animated.timing(entrance, { toValue: 1, duration: 600, useNativeDriver: true });
-    entranceRef.current.start();
+    let isActive = true;
 
-    // shimmer loop
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: -1, duration: 0, useNativeDriver: true }),
-      ])
-    );
-    shimmerLoopRef.current = loop;
-    loop.start();
-
-    // Firestore realtime listener for screens/CBAF6
-    // Keep your existing Firestore imports (doc, onSnapshot, db) in scope where you run this app.
-    let unsub;
-    try {
-      const docRef = doc(db, 'screens', 'CBAF6');
-      unsub = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists && snap.exists()) {
-            const data = snap.data();
-            setImageUrl(data?.imageUrl || null);
-          } else {
-            setImageUrl(null);
-          }
-        },
-        (error) => {
-          console.warn('CBAF6 onSnapshot error:', error);
-          setFsErr(error);
-        }
-      );
-    } catch (err) {
-      // Firestore not available or imports missing — graceful fallback
-      // eslint-disable-next-line no-console
-      console.warn('Firestore listener not initialized in CBAF6.js —', err);
-    }
+    (async () => {
+      try {
+        const [top, bottom] = await Promise.all([
+          getCcsMediaUrl("cba_eventsTop"),
+          getCcsMediaUrl("cba_eventsBottom"),
+        ]);
+        console.log("[CBAF6] cba_eventsTop =", top);
+        console.log("[CBAF6] cba_eventsBottom =", bottom);
+        if (!isActive) return;
+        setEventsTopUri(top);
+        setEventsBottomUri(bottom);
+      } catch (err) {
+        console.log("[CBAF6] failed to load CBA events:", err);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    })();
 
     return () => {
-      entranceRef.current && entranceRef.current.stop && entranceRef.current.stop();
-      shimmerLoopRef.current && shimmerLoopRef.current.stop && shimmerLoopRef.current.stop();
-      unsub && typeof unsub === 'function' && unsub();
+      isActive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function navSafe(route) {
-    if (navigation && typeof navigation.navigate === 'function') navigation.navigate(route);
+    if (navigation?.navigate) navigation.navigate(route);
   }
 
-  const shimmerTranslate = shimmer.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [-width * 0.6, width * 0.8],
-  });
-
-  const cardScale = entrance.interpolate({ inputRange: [0, 1], outputRange: [0.996, 1] });
+  const renderCard = (uri) => (
+    <View style={m.card}>
+      <LinearGradient
+        colors={["#FFD54F", "#FF8A00"]}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={m.cardBg}
+      />
+      {uri && (
+        <Image
+          source={{ uri }}
+          style={m.cardImage}
+          resizeMode="cover"
+          onError={(e) =>
+            console.log("[CBAF6] card image error:", e.nativeEvent)
+          }
+        />
+      )}
+      {loading && (
+        <View style={m.loadingOverlay}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
+      />
+      <LinearGradient colors={["#fff9f0", "#fff6ee"]} style={s.bg} />
+      <View style={s.layerTopRight} />
+      <View style={s.layerBottomLeft} />
 
-      {/* warm background gradient */}
-      <LinearGradient colors={['#fff9f0', '#fff6ee']} style={s.bg} />
-
-      {/* decorative gradient shapes */}
-      <LinearGradient colors={['#FFE082', '#FFB300']} start={[0,0]} end={[1,1]} style={s.layerTopRight} />
-      <LinearGradient colors={['#FFD54F', '#FF8A00']} start={[0,0]} end={[1,1]} style={s.layerBottomLeft} />
-
-      <TouchableWithoutFeedback onPress={() => navSafe('CBAF4')}>
-        <View style={s.back}>
-          <Image source={BACK} style={s.backImg} />
-        </View>
-      </TouchableWithoutFeedback>
+      {/* Back → CBAF3 */}
+      <TouchableOpacity style={s.back} onPress={() => navSafe("CBAF3")}>
+        <Image source={BACK} style={s.backImg} />
+      </TouchableOpacity>
 
       <View style={s.contentWrap}>
-        <Animated.View style={[m.cardWrapper, { transform: [{ scale: cardScale }] }]}>
-          {/* Show uploaded image if present, otherwise gradient */}
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={m.imageAbsolute}
-              resizeMode="cover"
-              onError={(e) => {
-                console.warn('CBAF6 image load error', e.nativeEvent);
-                setImageUrl(null);
-              }}
-            />
-          ) : (
-            // CBAF warm yellow→orange gradient
-            <LinearGradient colors={['#FFD54F', '#FF8A00']} start={[0, 0]} end={[1, 1]} style={m.bigCard} />
-          )}
+        <Text style={s.title}>CBA Events</Text>
 
-          {/* glossy shimmer overlay */}
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              m.gloss,
-              {
-                transform: [{ rotate: '22deg' }, { translateX: shimmerTranslate }],
-                opacity: shimmer.interpolate({ inputRange: [-1, 1], outputRange: [0.16, 0.28] }),
-              },
-            ]}
-          />
-        </Animated.View>
+        {renderCard(eventsTopUri)}
+        <View style={{ height: 16 }} />
+        {renderCard(eventsBottomUri)}
       </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  screen: { flex: 1, backgroundColor: "#fff" },
   bg: { ...StyleSheet.absoluteFillObject },
 
   layerTopRight: {
-    position: 'absolute',
+    position: "absolute",
     right: -40,
     top: -20,
     width: 220,
     height: 220,
     borderRadius: 18,
+    backgroundColor: "#FFE082",
+    opacity: 0.35,
   },
-
   layerBottomLeft: {
-    position: 'absolute',
+    position: "absolute",
     left: -60,
     bottom: -80,
     width: 260,
     height: 260,
     borderRadius: 160,
-    opacity: 0.9,
+    backgroundColor: "#FFB300",
+    opacity: 0.5,
   },
 
   back: {
-    position: 'absolute',
+    position: "absolute",
     right: 14,
-    top: Platform.OS === 'android' ? 14 : 50,
+    top: Platform.OS === "android" ? 14 : 50,
     width: 50,
     height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20,
   },
-
-  backImg: { width: 34, height: 34, tintColor: '#fff' },
+  backImg: { width: 34, height: 34, tintColor: "#fff" },
 
   contentWrap: {
     marginTop: 100,
-    width: Math.min(420, width - 40),
-    height: Math.min(560, height * 0.72),
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 14,
+    color: "#222",
   },
 });
 
 const m = StyleSheet.create({
-  cardWrapper: {
-    width: Math.min(360, width - 56),
-    height: Math.min(690, height * 0.88),
-    borderRadius: 22,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -1,
-    shadowColor: '#8f5e00',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 18 },
-    shadowRadius: 32,
-    elevation: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+  card: {
+    width: Math.min(360, width - 40),
+    height: height * 0.22,
+    borderRadius: 18,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
-
-  bigCard: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 22,
+  cardBg: {
+    ...StyleSheet.absoluteFillObject,
   },
-
-  imageAbsolute: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    borderRadius: 22,
+  cardImage: {
+    ...StyleSheet.absoluteFillObject,
   },
-
-  gloss: {
-    position: 'absolute',
-    top: -60,
-    left: -40,
-    width: 180,
-    height: 360,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 90,
-    zIndex: 6,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.18)",
   },
 });

@@ -15,10 +15,13 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
+
+const DEPT = "CCS";
+const SLOT_KEY = "newsMain";
 
 export default function CCSF5({ navigation }) {
   const dummy = useRef(new Animated.Value(0)).current;
@@ -36,7 +39,7 @@ export default function CCSF5({ navigation }) {
 
     (async () => {
       try {
-        const url = await getCcsMediaUrl("newsMain");
+        const url = await getDeptMediaUrl(DEPT, SLOT_KEY);
         console.log("[CCSF5] newsMain url =", url);
         if (isActive) setImageUrl(url);
       } finally {

@@ -1,4 +1,5 @@
-// COAF1 — Yellow + White Modern Theme
+// frontend/src/screens/COA/COAF1.js
+// COAF1 — Yellow + White Modern Theme (pattern matched to CCSF1)
 
 import React from "react";
 import {
@@ -20,9 +21,17 @@ const CONTAINER_W = Math.min(380, width - 24);
 const ARROW_IMG = require("../../../assets/back.png");
 
 export default function COAF1({ navigation }) {
+  function navSafe(route) {
+    if (navigation && typeof navigation.navigate === "function") {
+      navigation.navigate(route);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "dark-content" : "dark-content"}
+      />
 
       {/* Background shapes (soft yellow highlights) */}
       <View style={styles.topLeftCircle} />
@@ -46,14 +55,15 @@ export default function COAF1({ navigation }) {
 
             <View style={styles.titleWrap}>
               <Text style={styles.ccsText}>C.O.A</Text>
-              <Text style={styles.subtitle}>College of Computer Studies</Text>
+              <Text style={styles.subtitle}>College of Accountancy</Text>
             </View>
           </LinearGradient>
         </View>
 
         <Text style={styles.description}>
-          This track is for students who plan to pursue a college degree. It provides a strong core
-          subjects and includes specialized strands to suit various interests.
+          This track is for students who plan to pursue a college degree. It
+          provides a strong foundation in core subjects and includes specialized
+          strands to suit various interests.
         </Text>
       </View>
 
@@ -62,7 +72,7 @@ export default function COAF1({ navigation }) {
         <TouchableOpacity
           style={styles.proceedWrapper}
           activeOpacity={0.86}
-          onPress={() => navigation.navigate("COAF2")}
+          onPress={() => navSafe("COAF2")}
         >
           <LinearGradient
             colors={["#ffd60a", "#ffc300"]} // gold / strong yellow
@@ -75,11 +85,13 @@ export default function COAF1({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Back Button */}
+      {/* Back Button → Onboarding (same as other F1 screens) */}
       <TouchableOpacity
         style={styles.backBtn}
-        onPress={() => navigation.navigate("Onboarding")}
+        onPress={() => navSafe("Onboarding")}
         activeOpacity={0.85}
+        accessible
+        accessibilityLabel="Back"
       >
         <Image source={ARROW_IMG} style={styles.backImage} resizeMode="contain" />
       </TouchableOpacity>

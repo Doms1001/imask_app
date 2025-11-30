@@ -19,6 +19,7 @@ const { width, height } = Dimensions.get('window');
 const BACK = require('../../../assets/back.png');
 
 // Local screenshot (kept as a visual reference inside the card)
+// (not used in this version but you can place an <Image> if you want)
 const FAQ_IMG_URI = 'file:///mnt/data/572f4ca4-169c-4ab3-99b4-78368d7ae56d.png';
 
 export default function CBAF9({ navigation }) {
@@ -30,14 +31,25 @@ export default function CBAF9({ navigation }) {
   useEffect(() => {
     console.log('CBAF9 mounted (static FAQ card)');
 
-    // Use JS-driven animations to avoid native handoff issues
-    entranceRef.current = Animated.timing(entrance, { toValue: 1, duration: 600, useNativeDriver: false });
+    entranceRef.current = Animated.timing(entrance, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: false,
+    });
     entranceRef.current.start();
 
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 1400, useNativeDriver: false }),
-        Animated.timing(shimmer, { toValue: -1, duration: 0, useNativeDriver: false }),
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: false,
+        }),
+        Animated.timing(shimmer, {
+          toValue: -1,
+          duration: 0,
+          useNativeDriver: false,
+        }),
       ])
     );
     shimmerLoopRef.current = loop;
@@ -51,7 +63,9 @@ export default function CBAF9({ navigation }) {
   }, []);
 
   function navSafe(route) {
-    if (navigation && typeof navigation.navigate === 'function') navigation.navigate(route);
+    if (navigation && typeof navigation.navigate === 'function') {
+      navigation.navigate(route);
+    }
   }
 
   const shimmerTranslate = shimmer.interpolate({
@@ -59,28 +73,51 @@ export default function CBAF9({ navigation }) {
     outputRange: [-width * 0.6, width * 0.8],
   });
 
-  const cardScale = entrance.interpolate({ inputRange: [0, 1], outputRange: [0.996, 1] });
+  const cardScale = entrance.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.996, 1],
+  });
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+      />
 
       {/* warm background */}
       <LinearGradient colors={['#fff9f0', '#fff6ea']} style={s.bg} />
 
       {/* decorative warm shapes */}
-      <LinearGradient colors={['#FFD54F', '#FFB300']} start={[0, 0]} end={[1, 1]} style={s.layerTopRight} />
-      <LinearGradient colors={['#FFE082', '#FF8A00']} start={[0, 0]} end={[1, 1]} style={s.layerBottomLeft} />
+      <LinearGradient
+        colors={['#FFD54F', '#FFB300']}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={s.layerTopRight}
+      />
+      <LinearGradient
+        colors={['#FFE082', '#FF8A00']}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={s.layerBottomLeft}
+      />
 
-      <TouchableWithoutFeedback onPress={() => navSafe('CBAF8')}>
+      {/* Back → CBAF4 (hub) */}
+      <TouchableWithoutFeedback onPress={() => navSafe('CBAF4')}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
         </View>
       </TouchableWithoutFeedback>
 
       <View style={s.contentWrap}>
-        <Animated.View style={[m.cardWrapper, { transform: [{ scale: cardScale }] }]}>
-          <LinearGradient colors={['#FFD54F', '#FFB300']} start={[0, 0]} end={[1, 1]} style={m.bigCard} />
+        <Animated.View
+          style={[m.cardWrapper, { transform: [{ scale: cardScale }] }]}
+        >
+          <LinearGradient
+            colors={['#FFD54F', '#FFB300']}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={m.bigCard}
+          />
 
           <Animated.View
             pointerEvents="none"
@@ -88,32 +125,41 @@ export default function CBAF9({ navigation }) {
               m.gloss,
               {
                 transform: [{ rotate: '22deg' }, { translateX: shimmerTranslate }],
-                opacity: shimmer.interpolate({ inputRange: [-1, 1], outputRange: [0.14, 0.26] }),
+                opacity: shimmer.interpolate({
+                  inputRange: [-1, 1],
+                  outputRange: [0.14, 0.26],
+                }),
               },
             ]}
           />
 
           {/* Content inside the card */}
           <View style={m.innerContent}>
-            <ScrollView contentContainerStyle={m.scrollInner} showsVerticalScrollIndicator={false}>
-              {/* FAQ */}
+            <ScrollView
+              contentContainerStyle={m.scrollInner}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={m.faqCard}>
                 <Text style={m.faqTitle}>Frequently Asked Questions</Text>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: What are the admission requirements?</Text>
                   <Text style={m.a}>
-                    Application form, Form 138 (report card), PSA-authenticated Birth Certificate, 2x2 ID photos,
-                    and Certificate of Good Moral Character.
+                    Application form, Form 138 (report card), PSA-authenticated Birth
+                    Certificate, 2x2 ID photos, and Certificate of Good Moral Character.
                   </Text>
                   <View style={m.highlight}>
-                    <Text style={m.highlightText}>Tip: Submit Form 138 (report card) and valid IDs.</Text>
+                    <Text style={m.highlightText}>
+                      Tip: Submit Form 138 (report card) and valid IDs.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: Is there an entrance exam?</Text>
-                  <Text style={m.a}>No. Trimesx Colleges does not require an entrance exam for admission.</Text>
+                  <Text style={m.a}>
+                    No. Trimex Colleges does not require an entrance exam for admission.
+                  </Text>
                 </View>
 
                 <View style={m.qBlock}>
@@ -128,31 +174,42 @@ export default function CBAF9({ navigation }) {
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: Do graduates receive certificates?</Text>
                   <Text style={m.a}>
-                    Yes. Graduates are awarded degrees/diplomas. Some programs also issue TESDA certificates where applicable.
+                    Yes. Graduates are awarded degrees/diplomas. Some programs also issue
+                    TESDA certificates where applicable.
                   </Text>
                 </View>
 
                 <View style={m.qBlock}>
-                  <Text style={m.q}>Q: Can I transfer to Trimesx Colleges from another school?</Text>
+                  <Text style={m.q}>
+                    Q: Can I transfer to Trimex Colleges from another school?
+                  </Text>
                   <Text style={m.a}>
-                    Yes — transfers are accepted for College, Senior High School, and TESDA programs subject to evaluation and required documents.
+                    Yes — transfers are accepted for College, Senior High School, and TESDA
+                    programs, subject to evaluation and required documents.
                   </Text>
                 </View>
 
                 <View style={m.qBlock}>
-                  <Text style={m.q}>Q: How much is the downpayment for college enrollment?</Text>
+                  <Text style={m.q}>
+                    Q: How much is the downpayment for college enrollment?
+                  </Text>
                   <Text style={m.a}>
-                    The downpayment is P2,000, paid during registration and credited toward your total tuition fee.
+                    The downpayment is ₱2,000, paid during registration and credited toward
+                    your total tuition fee.
                   </Text>
                   <View style={m.highlight}>
-                    <Text style={m.highlightText}>Note: The downpayment must be settled before or during enrollment to secure your slot.</Text>
+                    <Text style={m.highlightText}>
+                      Note: The downpayment must be settled before or during enrollment to
+                      secure your slot.
+                    </Text>
                   </View>
                 </View>
 
                 <View style={m.qBlock}>
                   <Text style={m.q}>Q: When must the downpayment be paid?</Text>
                   <Text style={m.a}>
-                    The downpayment must be settled before or during registration to secure your slot. Late payments may delay enrollment.
+                    The downpayment must be settled before or during registration to secure
+                    your slot. Late payments may delay enrollment.
                   </Text>
                 </View>
               </View>

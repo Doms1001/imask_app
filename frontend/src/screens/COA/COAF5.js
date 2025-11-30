@@ -1,6 +1,7 @@
-// COAF5.js – Yellow + White Theme (Matches COAF1–4)
+// frontend/src/screens/COA/COAF5.js
+// COAF5 – News main image (COA, slot: "newsMain")
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -11,18 +12,47 @@ import {
   Dimensions,
   Animated,
   Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
 
-const { width, height } = Dimensions.get('window');
-const BACK = require('../../../assets/back.png');
+const { width, height } = Dimensions.get("window");
+const BACK = require("../../../assets/back.png");
+
+const DEPT_KEY = "coa";
+const SLOT_KEY = "newsMain";
 
 export default function COAF5({ navigation }) {
   const dummy = useRef(new Animated.Value(0)).current;
+  const [imageUrl, setImageUrl] = useState(null);
+  const [loadingImg, setLoadingImg] = useState(true);
 
   useEffect(() => {
-    Animated.timing(dummy, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-  }, []);
+    Animated.timing(dummy, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    let isActive = true;
+
+    (async () => {
+      try {
+        const url = await getDeptMediaUrl(DEPT_KEY, SLOT_KEY);
+        console.log("[COAF5] coa newsMain url =", url);
+        if (isActive) setImageUrl(url || null);
+      } catch (err) {
+        console.log("[COAF5] getDeptMediaUrl error:", err);
+      } finally {
+        if (isActive) setLoadingImg(false);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [dummy]);
 
   function navSafe(route) {
     if (navigation?.navigate) navigation.navigate(route);
@@ -33,14 +63,14 @@ export default function COAF5({ navigation }) {
       <StatusBar barStyle="dark-content" />
 
       {/* Yellow–White Background */}
-      <LinearGradient colors={['#fffaf0', '#fff7e6']} style={s.bg} />
+      <LinearGradient colors={["#fffaf0", "#fff7e6"]} style={s.bg} />
 
       {/* Decorative Shapes */}
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      {/* Back button */}
-      <TouchableWithoutFeedback onPress={() => navSafe('COAF3')}>
+      {/* Back button → COAF3 */}
+      <TouchableWithoutFeedback onPress={() => navSafe("COAF3")}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
         </View>
@@ -48,20 +78,39 @@ export default function COAF5({ navigation }) {
 
       {/* CONTENT */}
       <View style={s.contentWrap}>
-
-        {/* BIG YELLOW GRADIENT RECTANGLE */}
+        {/* BIG YELLOW GRADIENT RECTANGLE + dynamic image */}
         <View style={m.cardWrapper}>
+          {/* base gradient / fallback */}
           <LinearGradient
-            colors={['#ffe066', '#fff4a3']}
+            colors={["#ffe066", "#fff4a3"]}
             start={[0, 0]}
             end={[1, 1]}
             style={m.bigCard}
           />
 
-          {/* glossy shine */}
-          <Animated.View style={m.gloss} />
-        </View>
+          {/* fetched image overlay */}
+          {imageUrl && (
+            <Image
+              source={{ uri: imageUrl }}
+              style={m.image}
+              resizeMode="cover"
+              onError={(e) => {
+                console.log("[COAF5] image onError:", e.nativeEvent);
+                setImageUrl(null);
+              }}
+            />
+          )}
 
+          {/* loading spinner while first loading */}
+          {loadingImg && (
+            <View style={m.loadingOverlay}>
+              <ActivityIndicator size="large" color="#ffffff" />
+            </View>
+          )}
+
+          {/* glossy shine */}
+          <Animated.View style={m.gloss} pointerEvents="none" />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -69,77 +118,99 @@ export default function COAF5({ navigation }) {
 
 /* styles */
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fffaf0', alignItems: 'center' },
+  screen: { flex: 1, backgroundColor: "#fffaf0", alignItems: "center" },
   bg: { ...StyleSheet.absoluteFillObject },
 
   /* Yellow background shapes */
   layerTopRight: {
-    position: 'absolute',
+    position: "absolute",
     right: -40,
     top: -20,
     width: 220,
     height: 220,
-    backgroundColor: 'rgba(255, 235, 120, 0.55)',
+    backgroundColor: "rgba(255, 235, 120, 0.55)",
     borderRadius: 18,
   },
 
   layerBottomLeft: {
-    position: 'absolute',
+    position: "absolute",
     left: -60,
     bottom: -80,
     width: 260,
     height: 260,
-    backgroundColor: 'rgba(255, 215, 60, 0.75)',
+    backgroundColor: "rgba(255, 215, 60, 0.75)",
     borderRadius: 160,
   },
 
   /* Back Button */
   back: {
-    position: 'absolute',
+    position: "absolute",
     right: 14,
-    top: Platform.OS === 'android' ? 14 : 50,
+    top: Platform.OS === "android" ? 14 : 50,
     width: 50,
     height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20,
   },
 
-  backImg: { width: 34, height: 34, tintColor: '#111' },
+  backImg: { width: 34, height: 34, tintColor: "#111" },
 
   contentWrap: {
     marginTop: 100,
     width: Math.min(420, width - 40),
     height: Math.min(560, height * 0.72),
-    alignItems: 'center',
+    alignItems: "center",
   },
 });
 
 const m = StyleSheet.create({
   cardWrapper: {
-    width: 360,
-    height: 690,
+    width: Math.min(360, width - 56),
+    height: Math.min(640, height * 0.82),
     borderRadius: 22,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: -1,
+    shadowColor: "#f1c40f",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 18 },
+    shadowRadius: 28,
+    elevation: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
 
   /* Main yellow gradient card */
   bigCard: {
-    width: '100%',
-    height: '100%',
+    position: "absolute",
+    width: "100%",
+    height: "100%",
     borderRadius: 22,
   },
 
+  image: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+  },
+
+  loadingOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+
   gloss: {
-    position: 'absolute',
+    position: "absolute",
     top: -60,
     left: -40,
     width: 180,
     height: 360,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+    backgroundColor: "rgba(255,255,255,0.28)",
     borderRadius: 90,
-    transform: [{ rotate: '22deg' }],
+    transform: [{ rotate: "22deg" }],
   },
 });

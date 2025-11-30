@@ -1,4 +1,5 @@
 // frontend/src/screens/AdminScreen.js
+// CLEAN MULTI-DEPARTMENT VERSION (OPTION A) + Admin Panel Header + User Mode Button
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -16,11 +17,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as ImagePicker from "expo-image-picker";
+
 import {
-  uploadCcsMedia,
-  saveCcsFees,
-  loadCcsFees,
-  loadCcsMedia, // 👈 NEW
+  uploadDeptMedia,
+  loadDeptMedia,
+  saveDeptFees,
+  loadDeptFees,
 } from "../lib/ccsMediaHelpers";
 
 import COAlogo from "../../assets/COAlogo.png";
@@ -39,339 +41,170 @@ const DEPARTMENTS = [
   { key: "CAS", title: "College of Arts & Science", logo: CASlogo },
 ];
 
-// CCS media slots for CCSF5–7 & CCSF10 (7 total)
-const CCS_MEDIA_SLOTS = [
-  {
-    key: "newsMain",
-    label: "News main image",
-    subtitle: "Used in CCSF5 (big rectangle)",
-  },
-  {
-    key: "eventsTop",
-    label: "Events image – top",
-    subtitle: "Used in CCSF6 (top blurred box)",
-  },
-  {
-    key: "eventsBottom",
-    label: "Events image – bottom",
-    subtitle: "Used in CCSF6 (bottom blurred box)",
-  },
-  {
-    key: "ann1",
-    label: "Announcement image #1",
-    subtitle: "Used in CCSF7",
-  },
-  {
-    key: "ann2",
-    label: "Announcement image #2",
-    subtitle: "Used in CCSF7",
-  },
-  {
-    key: "ann3",
-    label: "Announcement image #3",
-    subtitle: "Used in CCSF7",
-  },
-  {
-    key: "essentials",
-    label: "Student Essentials image",
-    subtitle: "Used in CCSF10 (center rectangle)",
-  },
+const MEDIA_SLOTS = [
+  { key: "newsMain", label: "News main image", subtitle: "Used in F5 main highlight" },
+  { key: "eventsTop", label: "Events: top", subtitle: "Used in F6 top block" },
+  { key: "eventsBottom", label: "Events: bottom", subtitle: "Used in F6 lower block" },
+  { key: "ann1", label: "Announcement #1", subtitle: "Used in F7" },
+  { key: "ann2", label: "Announcement #2", subtitle: "Used in F7" },
+  { key: "ann3", label: "Announcement #3", subtitle: "Used in F7" },
+  { key: "essentials", label: "Student Essentials", subtitle: "Used in F10" },
 ];
+
+const INITIAL_HIGHLIGHT = { title: "", body: "" };
+
+const INITIAL_MEDIA = {
+  newsMain: null,
+  eventsTop: null,
+  eventsBottom: null,
+  ann1: null,
+  ann2: null,
+  ann3: null,
+  essentials: null,
+};
+
+const INITIAL_FEES = {
+  sem: "1st",
+  year: "1",
+  acadYear: "2025–2026",
+  tuition: "15000.00",
+  lab: "1200.00",
+  nonLab: "800.00",
+  misc: "500.00",
+  nstp: "200.00",
+  otherFee: "0.00",
+  discount: "1000.00",
+  down: "3000.00",
+};
 
 export default function AdminScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
-  // dynamic scaling
-  const BASE_W = 390;
-  const BASE_H = 844;
-  const scale = SCREEN_W / BASE_W;
-  const vScale = SCREEN_H / BASE_H;
-  const normalize = (size) => size * scale;
-  const vNormalize = (size) => size * vScale;
-  const isTablet = SCREEN_W > 600;
-
   const [selectedDept, setSelectedDept] = useState(DEPARTMENTS[0]);
 
-  // shared highlight text (later you can store per-dept if you want)
-  const [titleText, setTitleText] = useState("");
-  const [bodyText, setBodyText] = useState("");
-
-  // CCS media local preview state (URL from Supabase)
-  const [ccsMedia, setCcsMedia] = useState({
-    newsMain: null,
-    eventsTop: null,
-    eventsBottom: null,
-    ann1: null,
-    ann2: null,
-    ann3: null,
-    essentials: null,
+  const [highlightByDept, setHighlightByDept] = useState(() => {
+    const obj = {};
+    DEPARTMENTS.forEach((d) => (obj[d.key] = { ...INITIAL_HIGHLIGHT }));
+    return obj;
   });
 
-  // CCSF8-like config values
-  const [ccsSem, setCcsSem] = useState("1st");
-  const [ccsYear, setCcsYear] = useState("1");
-  const [ccsAcadYear, setCcsAcadYear] = useState("2025–2026");
+  const [mediaByDept, setMediaByDept] = useState(() => {
+    const obj = {};
+    DEPARTMENTS.forEach((d) => (obj[d.key] = { ...INITIAL_MEDIA }));
+    return obj;
+  });
 
-  const [ccsTuition, setCcsTuition] = useState("15000.00");
-  const [ccsLab, setCcsLab] = useState("1200.00");
-  const [ccsNonLab, setCcsNonLab] = useState("800.00");
-  const [ccsMisc, setCcsMisc] = useState("500.00");
-  const [ccsNstp, setCcsNstp] = useState("200.00");
-  const [ccsOtherFee, setCcsOtherFee] = useState("0.00");
-  const [ccsDiscount, setCcsDiscount] = useState("1000.00");
-  const [ccsDown, setCcsDown] = useState("3000.00");
+  const [feesByDept, setFeesByDept] = useState(() => {
+    const obj = {};
+    DEPARTMENTS.forEach((d) => (obj[d.key] = { ...INITIAL_FEES }));
+    return obj;
+  });
 
-  // animations
+  const currentHighlight = highlightByDept[selectedDept.key];
+  const currentMedia = mediaByDept[selectedDept.key];
+  const currentFees = feesByDept[selectedDept.key];
+
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(24)).current;
-  const blobTop = useRef(new Animated.Value(0)).current;
-  const blobBottom = useRef(new Animated.Value(0)).current;
   const saveGlow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(cardTranslateY, {
-        toValue: 0,
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
+      Animated.timing(cardTranslateY, { toValue: 0, duration: 450, useNativeDriver: true }),
     ]).start();
 
     Animated.loop(
       Animated.sequence([
-        Animated.timing(blobTop, {
-          toValue: 1,
-          duration: 9000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(blobTop, {
-          toValue: 0,
-          duration: 9000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(saveGlow, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.timing(saveGlow, { toValue: 0, duration: 1400, useNativeDriver: true }),
       ])
     ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(blobBottom, {
-          toValue: 1,
-          duration: 10000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(blobBottom, {
-          toValue: 0,
-          duration: 10000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(saveGlow, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(saveGlow, {
-          toValue: 0,
-          duration: 1400,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [blobTop, blobBottom, cardOpacity, cardTranslateY, saveGlow]);
-
-  // ---------- LOAD CCS FEES + MEDIA WHEN CCS TAB ACTIVE ----------
+  }, []);
 
   useEffect(() => {
-    if (selectedDept.key !== "CCS") return;
+    const dept = selectedDept.key;
 
     (async () => {
       try {
         const [fees, media] = await Promise.all([
-          loadCcsFees(),
-          loadCcsMedia(),
+          loadDeptFees(dept),
+          loadDeptMedia(dept),
         ]);
 
         if (fees) {
-          console.log("[AdminScreen] loaded CCS fees:", fees);
-
-          setCcsSem(fees.sem ?? "1st");
-          setCcsYear(fees.year ?? "1");
-          setCcsAcadYear(fees.acadYear ?? "2025–2026");
-          setCcsTuition(fees.tuition ?? "15000.00");
-          setCcsLab(fees.lab ?? "1200.00");
-          setCcsNonLab(fees.nonLab ?? "800.00");
-          setCcsMisc(fees.misc ?? "500.00");
-          setCcsNstp(fees.nstp ?? "200.00");
-          setCcsOtherFee(fees.otherFee ?? "0.00");
-          setCcsDiscount(fees.discount ?? "1000.00");
-          setCcsDown(fees.down ?? "3000.00");
+          setFeesByDept((prev) => ({
+            ...prev,
+            [dept]: { ...prev[dept], ...fees },
+          }));
         }
 
         if (media) {
-          console.log("[AdminScreen] loaded CCS media:", media);
-          setCcsMedia((prev) => ({ ...prev, ...media }));
+          setMediaByDept((prev) => ({
+            ...prev,
+            [dept]: { ...prev[dept], ...media },
+          }));
         }
       } catch (e) {
-        console.log("[AdminScreen] load CCS data error:", e);
+        console.log("[AdminScreen] load error:", e);
       }
     })();
   }, [selectedDept.key]);
 
-  const blobSize = Math.max(SCREEN_W * 0.9, 320);
-  const blobTopTransX = blobTop.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-40, 30],
-  });
-  const blobTopTransY = blobTop.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-16, 10],
-  });
-  const blobTopScale = blobTop.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.9, 1.08],
-  });
-
-  const blobBottomTransX = blobBottom.interpolate({
-    inputRange: [0, 1],
-    outputRange: [40, -20],
-  });
-  const blobBottomTransY = blobBottom.interpolate({
-    inputRange: [0, 1],
-    outputRange: [24, -12],
-  });
-  const blobBottomScale = blobBottom.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1.05, 0.9],
-  });
-
-  const saveGlowScale = saveGlow.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.06],
-  });
-  const saveGlowOpacity = saveGlow.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.25, 0.6],
-  });
-
-  // ---------- REAL IMAGE PICKER + UPLOAD ----------
-
   const handleSelectImage = async (slotKey) => {
     try {
-      console.log("[handleSelectImage] slot =", slotKey);
+      const dept = selectedDept.key;
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert(
-          "Permission required",
-          "Please allow gallery access to upload images."
-        );
-        return;
-      }
+      if (!perm.granted) return Alert.alert("Permission required");
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        // ✅ updated for SDK 54: use string array instead of MediaTypeOptions
         mediaTypes: ["images"],
         quality: 0.8,
       });
 
-      if (result.canceled) {
-        console.log("[handleSelectImage] user cancelled");
-        return;
-      }
+      if (result.canceled) return;
 
       const uri = result.assets?.[0]?.uri;
-      console.log("[handleSelectImage] picked uri =", uri);
+      if (!uri) return;
 
-      if (!uri) {
-        Alert.alert("Error", "No image URI returned.");
-        return;
-      }
+      const publicUrl = await uploadDeptMedia(dept, slotKey, uri);
 
-      const publicUrl = await uploadCcsMedia(slotKey, uri);
+      if (!publicUrl) return Alert.alert("Upload failed");
 
-      if (!publicUrl) {
-        Alert.alert("Upload failed", "Please try again.");
-        return;
-      }
-
-      // update local preview
-      setCcsMedia((prev) => ({
+      setMediaByDept((prev) => ({
         ...prev,
-        [slotKey]: publicUrl,
+        [dept]: { ...prev[dept], [slotKey]: publicUrl },
       }));
 
-      Alert.alert("Success", "Image uploaded and saved.");
-    } catch (e) {
-      console.log("[handleSelectImage] error:", e);
-      Alert.alert("Error", "Failed to pick or upload image.");
+      Alert.alert("Success", "Image uploaded.");
+    } catch (err) {
+      console.log("[handleSelectImage] ERROR:", err);
     }
   };
-
-  // ---------- SAVE CCS FEES ----------
 
   const handleSave = async () => {
-    if (selectedDept.key === "CCS") {
-      const payload = {
-        sem: ccsSem,
-        year: ccsYear,
-        acadYear: ccsAcadYear,
-        tuition: ccsTuition,
-        lab: ccsLab,
-        nonLab: ccsNonLab,
-        misc: ccsMisc,
-        nstp: ccsNstp,
-        otherFee: ccsOtherFee,
-        discount: ccsDiscount,
-        down: ccsDown,
-      };
+    const dept = selectedDept.key;
+    const payload = { ...feesByDept[dept], dept };
 
-      console.log("[handleSave] CCS highlight:", { titleText, bodyText });
-      console.log("[handleSave] CCS media slots:", ccsMedia);
-      console.log("[handleSave] CCS tuition payload:", payload);
+    const ok = await saveDeptFees(dept, payload);
+    if (!ok) return Alert.alert("Error", "Failed to save fees.");
 
-      const ok = await saveCcsFees(payload);
-
-      if (ok) {
-        Alert.alert("Saved", "CCS fees and media have been saved.");
-      } else {
-        Alert.alert("Error", "Failed to save CCS fees.");
-      }
-    } else {
-      Alert.alert(
-        "Saved (UI only)",
-        `Department: ${selectedDept.key}\nWe’ll add real save logic later.`
-      );
-    }
+    Alert.alert("Success", `${dept} fees saved.`);
   };
 
-  const renderCcsMediaSection = () => {
-    return (
-      <View style={{ marginTop: vNormalize(18) }}>
-        <Text style={styles.sectionLabel}>CCS screens media</Text>
-        <Text style={styles.sectionHint}>
-          These images appear in CCSF5–CCSF7 & CCSF10.
-        </Text>
+  const renderMediaSection = () => {
+    const activeMedia = mediaByDept[selectedDept.key];
 
-        {CCS_MEDIA_SLOTS.map((slot) => {
-          const hasImage = !!ccsMedia[slot.key];
+    return (
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.sectionLabel}>{selectedDept.key} Media</Text>
+        <Text style={styles.sectionHint}>Images used in screens F5–F7 & F10.</Text>
+
+        {MEDIA_SLOTS.map((slot) => {
+          const hasImage = !!activeMedia[slot.key];
+
           return (
             <View key={slot.key} style={styles.mediaRow}>
               <View style={{ flex: 1 }}>
@@ -380,11 +213,7 @@ export default function AdminScreen({ navigation }) {
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.mediaThumb,
-                  hasImage && styles.mediaThumbActive,
-                ]}
-                activeOpacity={0.9}
+                style={[styles.mediaThumb, hasImage && styles.mediaThumbActive]}
                 onPress={() => handleSelectImage(slot.key)}
               >
                 <Text style={styles.mediaThumbText}>
@@ -398,76 +227,75 @@ export default function AdminScreen({ navigation }) {
     );
   };
 
-  const renderCcsFeesSection = () => {
+  const renderFeesSection = () => {
+    const f = currentFees;
+
+    const setFee = (field, value) => {
+      setFeesByDept((prev) => ({
+        ...prev,
+        [selectedDept.key]: { ...prev[selectedDept.key], [field]: value },
+      }));
+    };
+
     return (
-      <View style={{ marginTop: vNormalize(18) }}>
-        <Text style={styles.sectionLabel}>CCSF8 – Tuition computation</Text>
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.sectionLabel}>
+          {selectedDept.key} F8 – Tuition Fees
+        </Text>
         <Text style={styles.sectionHint}>
-          These values will later be used by the CCSF8 “Computation of Fees”
-          screen.
+          These values appear in the department’s F8 fees screen.
         </Text>
 
-        {/* Row: Semester + Year */}
         <View style={styles.row}>
           <View style={styles.col}>
             <Text style={styles.fieldLabel}>Semester</Text>
             <TextInput
-              value={ccsSem}
-              onChangeText={setCcsSem}
-              placeholder="1st"
-              placeholderTextColor="rgba(0,0,0,0.35)"
+              value={f.sem}
+              onChangeText={(v) => setFee("sem", v)}
               style={[styles.textInput, styles.smallInput]}
             />
           </View>
           <View style={[styles.col, { marginLeft: 10 }]}>
             <Text style={styles.fieldLabel}>Year</Text>
             <TextInput
-              value={ccsYear}
-              onChangeText={setCcsYear}
-              placeholder="1"
-              placeholderTextColor="rgba(0,0,0,0.35)"
+              value={f.year}
+              onChangeText={(v) => setFee("year", v)}
               style={[styles.textInput, styles.smallInput]}
             />
           </View>
         </View>
 
-        {/* Row: Academic year */}
         <View style={styles.row}>
           <View style={styles.col} />
           <View style={[styles.col, { marginLeft: 10 }]}>
             <Text style={styles.fieldLabel}>Academic Year</Text>
             <TextInput
-              value={ccsAcadYear}
-              onChangeText={setCcsAcadYear}
-              placeholder="2025–2026"
-              placeholderTextColor="rgba(0,0,0,0.35)"
+              value={f.acadYear}
+              onChangeText={(v) => setFee("acadYear", v)}
               style={[styles.textInput, styles.smallInput]}
             />
           </View>
         </View>
 
-        {/* Fees table style – simple stacked inputs */}
         <View style={styles.feesCard}>
-          <Text style={styles.feesTitle}>Computation fields</Text>
+          <Text style={styles.feesTitle}>Computation Fields</Text>
 
           {[
-            { label: "Tuition Fee", value: ccsTuition, setter: setCcsTuition },
-            { label: "Laboratory Fee", value: ccsLab, setter: setCcsLab },
-            { label: "Non-Lab Fee", value: ccsNonLab, setter: setCcsNonLab },
-            { label: "Misc Fee", value: ccsMisc, setter: setCcsMisc },
-            { label: "NSTP / ROTC Fee", value: ccsNstp, setter: setCcsNstp },
-            { label: "Other Fee", value: ccsOtherFee, setter: setCcsOtherFee },
-            { label: "Discount", value: ccsDiscount, setter: setCcsDiscount },
-            { label: "Down Payment", value: ccsDown, setter: setCcsDown },
-          ].map((row) => (
-            <View key={row.label} style={styles.feeRow}>
-              <Text style={styles.feeLabel}>{row.label}</Text>
+            ["Tuition Fee", "tuition"],
+            ["Laboratory Fee", "lab"],
+            ["Non-Lab Fee", "nonLab"],
+            ["Misc Fee", "misc"],
+            ["NSTP / ROTC", "nstp"],
+            ["Other Fee", "otherFee"],
+            ["Discount", "discount"],
+            ["Down Payment", "down"],
+          ].map(([label, field]) => (
+            <View key={field} style={styles.feeRow}>
+              <Text style={styles.feeLabel}>{label}</Text>
               <TextInput
-                value={row.value}
-                onChangeText={row.setter}
+                value={f[field]}
+                onChangeText={(v) => setFee(field, v)}
                 keyboardType="numeric"
-                placeholder="0.00"
-                placeholderTextColor="rgba(0,0,0,0.35)"
                 style={[styles.textInput, styles.feeInput]}
               />
             </View>
@@ -477,157 +305,68 @@ export default function AdminScreen({ navigation }) {
     );
   };
 
-  const isCCS = selectedDept.key === "CCS";
-
   return (
-    <SafeAreaView
-      style={[
-        styles.safe,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-    >
-      {/* base white */}
-      <View style={styles.whiteLayer} />
-
-      {/* top blob */}
-      <Animated.View
-        style={[
-          styles.blob,
-          {
-            width: blobSize,
-            height: blobSize,
-            top: -blobSize * 0.35,
-            left: -blobSize * 0.3,
-            backgroundColor: "#ff6b3b",
-            opacity: 0.23,
-            transform: [
-              { translateX: blobTopTransX },
-              { translateY: blobTopTransY },
-              { scale: blobTopScale },
-            ],
-          },
-        ]}
-      />
-
-      {/* bottom blob */}
-      <Animated.View
-        style={[
-          styles.blob,
-          {
-            width: blobSize * 1.1,
-            height: blobSize * 1.1,
-            bottom: -blobSize * 0.45,
-            right: -blobSize * 0.35,
-            backgroundColor: "#0b0b0f",
-            opacity: 0.2,
-            transform: [
-              { translateX: blobBottomTransX },
-              { translateY: blobBottomTransY },
-              { scale: blobBottomScale },
-            ],
-          },
-        ]}
-      />
-
-      {/* header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingHorizontal: normalize(18),
-            marginTop: vNormalize(6),
-          },
-        ]}
+    <SafeAreaView style={[styles.safe, { paddingTop: insets.top + 6 }]}>
+      
+      {/* --------------------------- */}
+      {/*   USER MODE BUTTON (TOP)   */}
+      {/* --------------------------- */}
+      <TouchableOpacity
+        style={styles.userModeBtn}
+        onPress={() => navigation.navigate("OnboardingScreen")}
       >
-        <View>
-          <Text
-            style={[
-              styles.headerTitle,
-              { fontSize: normalize(isTablet ? 26 : 22) },
-            ]}
-          >
-            Admin Control Center
-          </Text>
-          <Text
-            style={[
-              styles.headerSub,
-              { fontSize: normalize(isTablet ? 13 : 12) },
-            ]}
-          >
-            Manage images and highlight text for each department.
-          </Text>
-        </View>
+        <Text style={styles.userModeText}>User Mode</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Onboarding")}
-          style={styles.headerBadge}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.headerBadgeText}>User mode</Text>
-        </TouchableOpacity>
+      {/* --------------------------- */}
+      {/*      ADMIN PANEL HEADER     */}
+      {/* --------------------------- */}
+      <View style={{ width: "100%", paddingHorizontal: 20, marginTop: 6 }}>
+        <Text style={styles.adminTitle}>Admin Content Panel</Text>
+        <Text style={styles.adminSubtitle}>
+          Here admin can upload photos for updates and modify sample tuition computations.
+        </Text>
       </View>
 
-      {/* content */}
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            minHeight: SCREEN_H * 0.9,
-            paddingHorizontal: normalize(16),
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+
         <Animated.View
           style={[
             styles.card,
             {
-              width: SCREEN_W * (isTablet ? 0.8 : 0.94),
-              paddingHorizontal: normalize(18),
-              paddingVertical: vNormalize(18),
               opacity: cardOpacity,
               transform: [{ translateY: cardTranslateY }],
+              width: SCREEN_W * 0.94,
+              paddingHorizontal: 16,
+              paddingVertical: 18,
             },
           ]}
         >
-          {/* dept pills */}
-          <Text style={styles.sectionLabel}>Select department</Text>
+          {/* SELECT DEPARTMENT */}
+          <Text style={styles.sectionLabel}>Select Department</Text>
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingVertical: vNormalize(10),
-            }}
+            contentContainerStyle={{ paddingVertical: 8 }}
           >
             {DEPARTMENTS.map((dept) => {
-              const isActive = dept.key === selectedDept.key;
+              const active = dept.key === selectedDept.key;
               return (
                 <TouchableOpacity
                   key={dept.key}
                   style={[
                     styles.deptChip,
-                    {
-                      borderColor: isActive
-                        ? "rgba(255,66,61,0.9)"
-                        : "rgba(0,0,0,0.12)",
-                      backgroundColor: isActive
-                        ? "rgba(255,66,61,0.06)"
-                        : "rgba(255,255,255,0.85)",
-                    },
+                    active ? styles.deptChipActive : styles.deptChipInactive,
                   ]}
                   onPress={() => setSelectedDept(dept)}
-                  activeOpacity={0.85}
                 >
-                  <View style={styles.deptAvatar}>
-                    <View style={styles.deptAvatarInner} />
-                  </View>
                   <Text
-                    style={[
-                      styles.deptChipText,
-                      {
-                        color: isActive ? "#ff423d" : "#222",
-                      },
-                    ]}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "700",
+                      color: active ? "#ff423d" : "#333",
+                    }}
                   >
                     {dept.key}
                   </Text>
@@ -636,131 +375,64 @@ export default function AdminScreen({ navigation }) {
             })}
           </ScrollView>
 
-          {/* current dept label */}
-          <View style={styles.selectedRow}>
-            <Text style={styles.selectedLabel}>Editing</Text>
-            <Text style={styles.selectedValue}>{selectedDept.title}</Text>
-          </View>
+          {/* Highlight Title */}
+          <Text style={styles.fieldLabel}>Highlight Title</Text>
+          <TextInput
+            value={currentHighlight.title}
+            onChangeText={(t) =>
+              setHighlightByDept((prev) => ({
+                ...prev,
+                [selectedDept.key]: { ...prev[selectedDept.key], title: t },
+              }))
+            }
+            style={[styles.textInput, { marginTop: 6 }]}
+          />
 
-          {/* upload area (generic cover) */}
-          <View
+          {/* Highlight Desc */}
+          <Text style={[styles.fieldLabel, { marginTop: 14 }]}>
+            Highlight Description
+          </Text>
+          <TextInput
+            value={currentHighlight.body}
+            onChangeText={(t) =>
+              setHighlightByDept((prev) => ({
+                ...prev,
+                [selectedDept.key]: { ...prev[selectedDept.key], body: t },
+              }))
+            }
+            multiline
             style={[
-              styles.uploadBox,
-              {
-                height: vNormalize(120),
-                marginTop: vNormalize(14),
-              },
+              styles.textInput,
+              { height: 100, marginTop: 6, textAlignVertical: "top" },
             ]}
-          >
-            <View style={styles.uploadBorderLayer} />
-            <View style={styles.uploadInner}>
-              <Text style={styles.uploadTitle}>Department cover image</Text>
-              <Text style={styles.uploadSub}>
-                This could appear on the main Departments listing or hero screen
-                later.
-              </Text>
+          />
 
-              <TouchableOpacity
-                style={[styles.uploadButton, { marginTop: vNormalize(10) }]}
-                onPress={() =>
-                  Alert.alert(
-                    "Upload cover",
-                    "Later this will upload a per-department cover image."
-                  )
-                }
-                activeOpacity={0.9}
-              >
-                <Text style={styles.uploadButtonText}>
-                  Upload / Change cover
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {renderMediaSection()}
+          {renderFeesSection()}
 
-          {/* text editors (highlight text) */}
-          <View style={{ marginTop: vNormalize(18) }}>
-            <Text style={styles.fieldLabel}>Highlight title</Text>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  height: vNormalize(44),
-                  paddingHorizontal: normalize(10),
-                  marginTop: vNormalize(6),
-                },
-              ]}
-              value={titleText}
-              onChangeText={setTitleText}
-              placeholder="e.g., Be future-ready with CCS."
-              placeholderTextColor="rgba(0,0,0,0.35)"
-            />
-
-            <Text
-              style={[
-                styles.fieldLabel,
-                { marginTop: vNormalize(12) },
-              ]}
-            >
-              Highlight description
-            </Text>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  height: vNormalize(90),
-                  paddingHorizontal: normalize(10),
-                  paddingTop: vNormalize(8),
-                  textAlignVertical: "top",
-                  marginTop: vNormalize(6),
-                },
-              ]}
-              value={bodyText}
-              onChangeText={setBodyText}
-              placeholder="Short pitch or description shown to students..."
-              placeholderTextColor="rgba(0,0,0,0.35)"
-              multiline
-            />
-          </View>
-
-          {/* CCS-only extra sections */}
-          {isCCS ? (
-            <>
-              {renderCcsMediaSection()}
-              {renderCcsFeesSection()}
-            </>
-          ) : (
-            <View style={{ marginTop: vNormalize(18) }}>
-              <Text style={styles.sectionLabel}>Per-screen media</Text>
-              <Text style={styles.sectionHint}>
-                For {selectedDept.key}, we will add specific upload slots later.
-                For now, only CCS is fully wired in this prototype.
-              </Text>
-            </View>
-          )}
-
-          {/* Save button with glow */}
-          <View style={{ marginTop: vNormalize(24), alignItems: "center" }}>
+          {/* SAVE */}
+          <View style={{ marginTop: 30, alignItems: "center" }}>
             <Animated.View
               style={[
                 styles.saveGlow,
                 {
-                  opacity: saveGlowOpacity,
-                  transform: [{ scale: saveGlowScale }],
+                  opacity: saveGlow.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.25, 0.6],
+                  }),
+                  transform: [
+                    {
+                      scale: saveGlow.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.06],
+                      }),
+                    },
+                  ],
                 },
               ]}
             />
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                {
-                  paddingVertical: vNormalize(12),
-                  paddingHorizontal: normalize(38),
-                },
-              ]}
-              activeOpacity={0.92}
-              onPress={handleSave}
-            >
-              <Text style={styles.saveText}>Save changes</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -769,182 +441,101 @@ export default function AdminScreen({ navigation }) {
   );
 }
 
+// -------------------
+//       STYLES
+// -------------------
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#f3f3f6",
+    backgroundColor: "#f2f2f5",
   },
-  whiteLayer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#ffffff",
-  },
-  blob: {
-    position: "absolute",
-    borderRadius: 9999,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerTitle: {
-    color: "#111",
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  headerSub: {
-    marginTop: 2,
-    color: "#555",
-    fontWeight: "500",
-  },
-  headerBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.85)",
-  },
-  headerBadgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-
   scrollContent: {
     flexGrow: 1,
     alignItems: "center",
-    paddingBottom: 24,
+    paddingBottom: 40,
+  },
+
+  // USER MODE BUTTON
+  userModeBtn: {
+    position: "absolute",
+    top: 60,
+    right: 16,
+    zIndex: 99,
+    backgroundColor: "#111",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  userModeText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+
+  // ADMIN HEADER
+  adminTitle: {
+    fontSize: 50,
+    fontWeight: "900",
+    color: "red",
+  },
+  adminSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#444",
   },
 
   card: {
-    backgroundColor: "rgba(255,255,255,0.98)",
+    backgroundColor: "#fff",
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    borderColor: "rgba(0,0,0,0.08)",
   },
 
   sectionLabel: {
     fontSize: 12,
     fontWeight: "700",
     color: "#777",
-    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   sectionHint: {
-    marginTop: 4,
     fontSize: 11,
     color: "#999",
+    marginTop: 4,
+    marginBottom: 10,
+  },
+
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  textInput: {
+    backgroundColor: "rgba(0,0,0,0.04)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingHorizontal: 10,
+    color: "#111",
+    height: 40,
   },
 
   deptChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
     marginRight: 8,
     borderWidth: 1,
   },
-  deptAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.18)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 6,
-    backgroundColor: "rgba(255,255,255,0.8)",
+  deptChipActive: {
+    borderColor: "#ff423d",
+    backgroundColor: "rgba(255,66,61,0.08)",
   },
-  deptAvatarInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: "#ff423d",
-  },
-  deptChipText: {
-    fontSize: 12,
-    fontWeight: "700",
+  deptChipInactive: {
+    borderColor: "rgba(0,0,0,0.15)",
+    backgroundColor: "#fff",
   },
 
-  selectedRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginTop: 6,
-  },
-  selectedLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#999",
-    marginRight: 4,
-  },
-  selectedValue: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#222",
-    flexShrink: 1,
-  },
-
-  uploadBox: {
-    borderRadius: 18,
-    overflow: "hidden",
-    justifyContent: "center",
-  },
-  uploadBorderLayer: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,66,61,0.55)",
-    borderStyle: "dashed",
-  },
-  uploadInner: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    justifyContent: "center",
-  },
-  uploadTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#222",
-  },
-  uploadSub: {
-    fontSize: 11,
-    color: "#666",
-    marginTop: 4,
-  },
-  uploadButton: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: "#ff423d",
-  },
-  uploadButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  fieldLabel: {
-    fontSize: 12,
-    color: "#222",
-    fontWeight: "600",
-  },
-  textInput: {
-    backgroundColor: "rgba(0,0,0,0.03)",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-    color: "#000",
-  },
-
-  // CCS media rows
   mediaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -958,20 +549,19 @@ const styles = StyleSheet.create({
   mediaSub: {
     fontSize: 11,
     color: "#777",
-    marginTop: 2,
   },
   mediaThumb: {
-    marginLeft: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.16)",
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "#fff",
+    borderColor: "rgba(0,0,0,0.12)",
+    marginLeft: 10,
   },
   mediaThumbActive: {
     borderColor: "#ff423d",
-    backgroundColor: "rgba(255,66,61,0.08)",
+    backgroundColor: "rgba(255,66,61,0.10)",
   },
   mediaThumbText: {
     fontSize: 11,
@@ -986,9 +576,8 @@ const styles = StyleSheet.create({
   col: {
     flex: 1,
   },
+
   smallInput: {
-    height: 40,
-    paddingHorizontal: 10,
     marginTop: 6,
   },
 
@@ -996,18 +585,17 @@ const styles = StyleSheet.create({
     marginTop: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
-    backgroundColor: "rgba(255,255,255,0.96)",
+    borderColor: "rgba(0,0,0,0.08)",
+    backgroundColor: "#fff",
     paddingVertical: 8,
   },
   feesTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#444",
     paddingHorizontal: 10,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.04)",
+    borderBottomColor: "rgba(0,0,0,0.06)",
   },
   feeRow: {
     flexDirection: "row",
@@ -1018,27 +606,27 @@ const styles = StyleSheet.create({
   feeLabel: {
     flex: 1.2,
     fontSize: 12,
-    color: "#222",
   },
   feeInput: {
     flex: 1,
     height: 34,
-    paddingHorizontal: 8,
     textAlign: "right",
+    paddingHorizontal: 8,
   },
 
   saveGlow: {
     position: "absolute",
     width: 200,
-    height: 54,
+    height: 50,
     borderRadius: 999,
-    backgroundColor: "rgba(255,66,61,0.55)",
+    backgroundColor: "rgba(255,66,61,0.5)",
   },
+
   saveButton: {
+    paddingHorizontal: 34,
+    paddingVertical: 11,
     borderRadius: 999,
-    backgroundColor: "#0b1113",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#111",
   },
   saveText: {
     color: "#fff",

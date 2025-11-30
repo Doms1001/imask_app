@@ -1,7 +1,7 @@
-// COAF10.js – updated with long Name + half-size Semester/Year fields
-// (default fields filled with example numbers)
+// frontend/src/screens/COE/COEF8.js
+// COEF8 – Tuition / fees screen for COE, with Name coming from FillupScreen
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -18,14 +18,16 @@ import {
   ScrollView,
   Linking,
   Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { getCurrentVisitorName } from "../../state/userSession"; // same as CCS
+import { loadDeptFees } from "../../lib/ccsMediaHelpers";          // COE-specific fees helper
 
-const { width, height } = Dimensions.get('window');
-const BACK = require('../../../assets/back.png');
-const GMAIL_IMG = { uri: "file:///mnt/data/2a55a4ee-8439-4987-8640-2b9ee722a0a0.png" };
+const { width, height } = Dimensions.get("window");
+const BACK = require("../../../assets/back.png");
+const GMAIL_IMG = require("../../../assets/gmail.png");
 
-export default function COAF10({ navigation }) {
+export default function COEF8({ navigation }) {
   const dummy = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -40,23 +42,50 @@ export default function COAF10({ navigation }) {
     if (navigation?.navigate) navigation.navigate(route);
   }
 
-  // form fields (defaults filled with example values)
-  const [name, setName] = useState('Juan Dela Cruz');
-  const [semester, setSemester] = useState('1st');
-  const [year, setYear] = useState('1');
-  const [acadYear, setAcadYear] = useState('2025–2026');
+  // Name from FillupScreen via shared state
+  const initialName = getCurrentVisitorName() || "";
+  const [name, setName] = useState(initialName);
 
-  const [tuition, setTuition] = useState('15000.00');
-  const [lab, setLab] = useState('1200.00');
-  const [nonLab, setNonLab] = useState('800.00');
-  const [misc, setMisc] = useState('500.00');
-  const [nstp, setNstp] = useState('200.00');
-  const [otherFee, setOtherFee] = useState('0.00');
-  const [discount, setDiscount] = useState('1000.00');
-  const [downPayment, setDownPayment] = useState('3000.00');
+  const [semester, setSemester] = useState("1st");
+  const [year, setYear] = useState("1");
+  const [acadYear, setAcadYear] = useState("2025–2026");
 
-  const parseNum = v => {
-    const n = parseFloat(String(v).replace(/[^0-9.-]+/g, ''));
+  const [tuition, setTuition] = useState("15000.00");
+  const [lab, setLab] = useState("1200.00");
+  const [nonLab, setNonLab] = useState("800.00");
+  const [misc, setMisc] = useState("500.00");
+  const [nstp, setNstp] = useState("200.00");
+  const [otherFee, setOtherFee] = useState("0.00");
+  const [discount, setDiscount] = useState("1000.00");
+  const [downPayment, setDownPayment] = useState("3000.00");
+
+  // Load COE fees from Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        const remote = await loadDeptFees("CAS");
+        console.log("[COEF8] remote COE fees:", remote);
+        if (!remote) return;
+
+        if (remote.sem) setSemester(remote.sem);
+        if (remote.year) setYear(remote.year);
+        if (remote.acadYear) setAcadYear(remote.acadYear);
+        if (remote.tuition) setTuition(remote.tuition);
+        if (remote.lab) setLab(remote.lab);
+        if (remote.nonLab) setNonLab(remote.nonLab);
+        if (remote.misc) setMisc(remote.misc);
+        if (remote.nstp) setNstp(remote.nstp);
+        if (remote.otherFee) setOtherFee(remote.otherFee);
+        if (remote.discount) setDiscount(remote.discount);
+        if (remote.down) setDownPayment(remote.down); // keep same key as CCS
+      } catch (err) {
+        console.log("[COEF8] failed to load remote COE fees:", err);
+      }
+    })();
+  }, []);
+
+  const parseNum = (v) => {
+    const n = parseFloat(String(v).replace(/[^0-9.-]+/g, ""));
     return isNaN(n) ? 0 : n;
   };
 
@@ -72,15 +101,15 @@ export default function COAF10({ navigation }) {
   const balance = Math.max(0, totalAfterDiscount - parseNum(downPayment));
 
   function sendEmail() {
-    const subject = encodeURIComponent('Computation of Fees');
+    const subject = encodeURIComponent("Computation of Fees");
     const body = encodeURIComponent(
       [
         `Name: ${name}`,
         `Semester: ${semester}`,
         `Year: ${year}`,
         `Academic Year: ${acadYear}`,
-        '',
-        'Computation of Fees:',
+        "",
+        "Computation of Fees:",
         `Tuition Fee: ${tuition}`,
         `Laboratory Fee: ${lab}`,
         `Non-Lab Fee: ${nonLab}`,
@@ -91,25 +120,29 @@ export default function COAF10({ navigation }) {
         `TOTAL FEES: ${totalFees.toFixed(2)}`,
         `Down Payment: ${downPayment}`,
         `Balance: ${balance.toFixed(2)}`,
-      ].join('\n')
+      ].join("\n")
     );
 
     const mailto = `mailto:?subject=${subject}&body=${body}`;
     Linking.openURL(mailto).catch(() => {
-      Alert.alert('Error', 'Unable to open mail client.');
+      Alert.alert("Error", "Unable to open mail client.");
     });
   }
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
+      />
 
-      <LinearGradient colors={['#FFFFFF', '#FFF9D9']} style={s.bg} />
+      {/* COE theme: soft orange background */}
+      <LinearGradient colors={["#ffffff", "#ffeede"]} style={s.bg} />
 
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      <TouchableWithoutFeedback onPress={() => navSafe('COAF4')}>
+      {/* Back → COEF4 (fees/uniform/FAQ hub) */}
+      <TouchableWithoutFeedback onPress={() => navSafe("COEF4")}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
         </View>
@@ -120,7 +153,6 @@ export default function COAF10({ navigation }) {
           contentContainerStyle={s.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
           {/* NAME full width */}
           <View style={{ marginBottom: 14 }}>
             <Text style={s.label}>Name:</Text>
@@ -160,7 +192,7 @@ export default function COAF10({ navigation }) {
 
           {/* Academic Year half width on right */}
           <View style={s.formRow}>
-            <View style={s.formColHalf}></View>
+            <View style={s.formColHalf} />
             <View style={[s.formColHalf, { marginLeft: 10 }]}>
               <Text style={s.label}>Academic Year:</Text>
               <TextInput
@@ -175,20 +207,32 @@ export default function COAF10({ navigation }) {
 
           {/* Fees Table */}
           <View style={s.tableCard}>
-            <Text style={s.tableTitle}>Computation of Fees</Text>
+            <Text style={s.tableTitle}>Computation of Fees (COE)</Text>
 
             <View style={s.table}>
               {[
-                { label: 'Tuition Fee', value: tuition, onChange: setTuition },
-                { label: 'Laboratory Fee', value: lab, onChange: setLab },
-                { label: 'Non-Lab Fee', value: nonLab, onChange: setNonLab },
-                { label: 'Misc Fee', value: misc, onChange: setMisc },
-                { label: 'NSTP/ROTC Fee', value: nstp, onChange: setNstp },
-                { label: 'Other Fee', value: otherFee, onChange: setOtherFee },
-                { label: 'Discount', value: discount, onChange: setDiscount },
-                { label: 'TOTAL FEES', value: totalFees.toFixed(2), static: true },
-                { label: 'Down Payment', value: downPayment, onChange: setDownPayment },
-                { label: 'Balance', value: balance.toFixed(2), static: true },
+                { label: "Tuition Fee", value: tuition, onChange: setTuition },
+                { label: "Laboratory Fee", value: lab, onChange: setLab },
+                { label: "Non-Lab Fee", value: nonLab, onChange: setNonLab },
+                { label: "Misc Fee", value: misc, onChange: setMisc },
+                { label: "NSTP/ROTC Fee", value: nstp, onChange: setNstp },
+                { label: "Other Fee", value: otherFee, onChange: setOtherFee },
+                { label: "Discount", value: discount, onChange: setDiscount },
+                {
+                  label: "TOTAL FEES",
+                  value: totalFees.toFixed(2),
+                  static: true,
+                },
+                {
+                  label: "Down Payment",
+                  value: downPayment,
+                  onChange: setDownPayment,
+                },
+                {
+                  label: "Balance",
+                  value: balance.toFixed(2),
+                  static: true,
+                },
               ].map((row, idx) => (
                 <View key={idx} style={s.tableRow}>
                   <View style={s.tdLeft}>
@@ -225,75 +269,76 @@ export default function COAF10({ navigation }) {
               </View>
             </TouchableOpacity>
           </View>
-
         </ScrollView>
       </View>
     </SafeAreaView>
   );
 }
 
+/* styles */
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
+  screen: { flex: 1, backgroundColor: "#fff", alignItems: "center" },
   bg: { ...StyleSheet.absoluteFillObject },
 
+  // COE blobs: dark + orange
   layerTopRight: {
-    position: 'absolute',
+    position: "absolute",
     right: -40,
     top: -20,
     width: 220,
     height: 220,
     borderRadius: 18,
-    backgroundColor: '#F4D03F',
+    backgroundColor: "#212121",
     opacity: 0.25,
   },
   layerBottomLeft: {
-    position: 'absolute',
+    position: "absolute",
     left: -60,
     bottom: -80,
     width: 260,
     height: 260,
     borderRadius: 160,
-    backgroundColor: '#F8C400',
+    backgroundColor: "#FB8C00",
     opacity: 0.35,
   },
 
   back: {
-    position: 'absolute',
+    position: "absolute",
     right: 14,
     top: 50,
     width: 50,
     height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backImg: { width: 34, height: 34, tintColor: '#000' },
+  backImg: { width: 34, height: 34, tintColor: "#000" },
 
   contentWrap: {
     marginTop: 36,
     width: Math.min(420, width - 28),
     height: Math.min(560, height * 0.72),
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 14,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 6,
   },
 
   scrollContent: { padding: 14, paddingBottom: 30 },
 
-  label: { fontSize: 13, fontWeight: '600', color: '#222', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: "#222", marginBottom: 6 },
 
   input: {
     height: 38,
     borderRadius: 6,
     paddingHorizontal: 10,
-    backgroundColor: '#FFF9D9',
-    borderColor: '#F0E6A8',
+    backgroundColor: "#FFF2E0",
+    borderColor: "#F7C8A1",
     borderWidth: 1,
-    color: '#111',
+    color: "#111",
   },
 
   formRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   formColHalf: {
@@ -304,55 +349,55 @@ const s = StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: '#fff',
+    borderColor: "rgba(0,0,0,0.06)",
+    backgroundColor: "#fff",
   },
   tableTitle: {
     padding: 10,
-    backgroundColor: '#FFF7E0',
+    backgroundColor: "#FFE4C4",
     fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
+    color: "#333",
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: "#EEE",
   },
   table: {},
   tableRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     minHeight: 40,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    alignItems: 'center',
+    borderBottomColor: "#EEE",
+    alignItems: "center",
   },
   tdLeft: { flex: 2, paddingHorizontal: 10 },
-  tdRight: { flex: 1, paddingHorizontal: 10, alignItems: 'flex-end' },
-  tdLabel: { fontSize: 13, color: '#222' },
+  tdRight: { flex: 1, paddingHorizontal: 10, alignItems: "flex-end" },
+  tdLabel: { fontSize: 13, color: "#222" },
   tdInput: {
     height: 32,
-    width: '100%',
-    backgroundColor: '#FFF9D9',
-    borderColor: '#F0E6A8',
+    width: "100%",
+    backgroundColor: "#FFF2E0",
+    borderColor: "#F7C8A1",
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 6,
-    textAlign: 'right',
+    textAlign: "right",
   },
-  tdValueStatic: { fontSize: 13, fontWeight: '700', color: '#222' },
+  tdValueStatic: { fontSize: 13, fontWeight: "700", color: "#222" },
 
-  sendWrap: { marginTop: 18, alignItems: 'center' },
-  sendLabel: { fontSize: 12, color: '#333', marginBottom: 8 },
+  sendWrap: { marginTop: 18, alignItems: "center" },
+  sendLabel: { fontSize: 12, color: "#333", marginBottom: 8 },
   gmailBtn: {
     width: 160,
     borderRadius: 26,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     elevation: 6,
   },
   gmailInner: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  gmailImg: { width: 26, height: 22, marginRight: 10 },
-  gmailText: { fontSize: 14, fontWeight: '700', color: '#222' },
+  gmailImg: { width: 26, height: 22, marginRight: 10, resizeMode: "contain" },
+  gmailText: { fontSize: 14, fontWeight: "700", color: "#222" },
 });

@@ -15,10 +15,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
+
+const DEPT = "CCJ";
+const SLOT_TOP = "eventsTop";
+const SLOT_BOTTOM = "eventsBottom";
 
 export default function CCSF6({ navigation }) {
   const [eventsTopUri, setEventsTopUri] = useState(null);
@@ -31,8 +35,8 @@ export default function CCSF6({ navigation }) {
     (async () => {
       try {
         const [top, bottom] = await Promise.all([
-          getCcsMediaUrl("eventsTop"),
-          getCcsMediaUrl("eventsBottom"),
+          getDeptMediaUrl(DEPT, SLOT_TOP),
+          getDeptMediaUrl(DEPT, SLOT_BOTTOM),
         ]);
         console.log("[CCSF6] eventsTop =", top);
         console.log("[CCSF6] eventsBottom =", bottom);

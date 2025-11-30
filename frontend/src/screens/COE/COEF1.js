@@ -1,3 +1,6 @@
+// frontend/src/screens/COE/COEF1.js
+// COEF1 — COE intro screen (orange / white / black theme, based on CCSF1 / COAF1)
+
 import React from "react";
 import {
   SafeAreaView,
@@ -17,26 +20,26 @@ const CONTAINER_W = Math.min(380, width - 24);
 
 const ARROW_IMG = require("../../../assets/back.png");
 
-export default function COEF1Shapes({ navigation }) {
+export default function COEF1({ navigation }) {
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar
-        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
-        translucent={false}
-      />
+      <StatusBar barStyle="dark-content" />
 
+      {/* background shapes */}
       <View style={styles.topLeftCircle} />
-      <View style={styles.topRightRedRect} />
+      <View style={styles.topRightOrangeRect} />
       <View style={styles.topRightBlackRect} />
 
+      {/* main content */}
       <View style={styles.content}>
         <View style={styles.cardWrap}>
           <LinearGradient
-            colors={["#e72b2b", "#8b0000"]}
+            colors={["#ff9800", "#e65100"]} // orange → deep orange
             start={[0, 0]}
             end={[1, 1]}
             style={styles.card}
           >
+            {/* watermark */}
             <View style={styles.watermarkGroup}>
               <View style={styles.watermarkCircleLarge} />
               <View style={styles.watermarkInnerArc} />
@@ -50,11 +53,13 @@ export default function COEF1Shapes({ navigation }) {
         </View>
 
         <Text style={styles.description}>
-          This track is for students who plan to pursue a college degree. It provides a strong foundation 
-          in core subjects and includes specialized strands to suit various interests.
+          This track is for students who plan to pursue a college degree in Engineering.
+          It provides a strong foundation in core subjects and includes specialized
+          fields such as civil, mechanical, electrical, and more.
         </Text>
       </View>
 
+      {/* Proceed button */}
       <View style={styles.bottomArea}>
         <TouchableOpacity
           style={styles.proceedWrapper}
@@ -62,7 +67,7 @@ export default function COEF1Shapes({ navigation }) {
           onPress={() => navigation.navigate("COEF2")}
         >
           <LinearGradient
-            colors={["#7b0000", "#c21b1b"]}
+            colors={["#e65100", "#ff8f00"]}
             start={[0, 0]}
             end={[1, 1]}
             style={styles.proceedBtn}
@@ -72,6 +77,7 @@ export default function COEF1Shapes({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* Back to onboarding */}
       <TouchableOpacity
         style={styles.backBtn}
         onPress={() => navigation.navigate("Onboarding")}
@@ -95,6 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  /* background shapes */
   topLeftCircle: {
     position: "absolute",
     left: 12,
@@ -102,17 +109,17 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#ff1f1f",
+    backgroundColor: "#ffb74d", // soft orange
     zIndex: 2,
   },
-  topRightRedRect: {
+  topRightOrangeRect: {
     position: "absolute",
     right: -4,
     top: 8,
     width: 100,
     height: 100,
     borderRadius: 6,
-    backgroundColor: "#ff1f1f",
+    backgroundColor: "#ff9800",
     zIndex: 2,
   },
   topRightBlackRect: {
@@ -131,6 +138,7 @@ const styles = StyleSheet.create({
     marginTop: 110,
   },
 
+  /* card */
   cardWrap: {
     width: "100%",
     borderRadius: 18,
@@ -206,6 +214,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 
+  /* proceed button */
   bottomArea: {
     width: "100%",
     alignItems: "center",
@@ -232,11 +241,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  /* back button */
   backBtn: {
     position: "absolute",
     right: 12,
-    top: 12,
-    backgroundColor: "transparent",
+    top: Platform.OS === "android" ? 14 : 50,
     width: 40,
     height: 40,
     alignItems: "center",
@@ -244,10 +253,8 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   backImage: {
-    marginTop: 60,
-    width: 40,
-    height: 40,
-    tintColor: "#ffffff",
-    opacity: 1,
+    width: 34,
+    height: 34,
+    tintColor: "#000", // black arrow over light bg + orange shapes
   },
 });

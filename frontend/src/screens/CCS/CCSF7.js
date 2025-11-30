@@ -16,10 +16,16 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { loadCcsMedia } from "../../lib/ccsMediaHelpers"; // ✅ use same helper as other screens
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
+
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
+
+const DEPT = "CCS";
+const SLOT1 = "ann1";
+const SLOT2 = "ann2";
+const SLOT3 = "ann3";
 
 export default function CCSF7({ navigation }) {
   const [ann1, setAnn1] = useState(null);
@@ -32,20 +38,21 @@ export default function CCSF7({ navigation }) {
 
     (async () => {
       try {
-        const media = await loadCcsMedia();
-        console.log("[CCSF7] media map =", media);
-
-        if (!isActive || !media) return;
-
-        setAnn1(media.ann1 || null);
-        setAnn2(media.ann2 || null);
-        setAnn3(media.ann3 || null);
-
-        console.log("[CCSF7] ann1 =", media.ann1);
-        console.log("[CCSF7] ann2 =", media.ann2);
-        console.log("[CCSF7] ann3 =", media.ann3);
-      } catch (e) {
-        console.log("[CCSF7] failed to load media:", e);
+        const [u1, u2, u3] = await Promise.all([
+                  getDeptMediaUrl(DEPT, SLOT1),
+                  getDeptMediaUrl(DEPT, SLOT2),
+                  getDeptMediaUrl(DEPT, SLOT3),
+                ]);
+        
+                if (!isActive) return;
+        
+                setAnn1(u1 || null);
+                setAnn2(u2 || null);
+                setAnn3(u3 || null);
+        
+                console.log("[CCSF7] fetched:", { u1, u2, u3 });
+              } catch (e) {
+                console.log("[CCSF7] failed to load CCS announcements:", e);
       } finally {
         if (isActive) setLoading(false);
       }

@@ -1,8 +1,7 @@
-// CCSF7.js
-// Announcement screen with gradient top bar, big gradient card, bottom bar and overlapping red square
-// Reference preview image (optional): /mnt/data/0b463c41-4eb7-4cd9-853c-b306b46c45b1.png
+// frontend/src/screens/COE/COEF7.js
+// COE7 – Announcements (COE theme, slots: "coe_ann1", "coe_ann2", "coe_ann3")
 
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -11,62 +10,113 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Animated,
   Platform,
   Text,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import { loadCcsMedia } from "../../lib/ccsMediaHelpers";
 
-const { width, height } = Dimensions.get('window');
-const BACK = require('../../../assets/back.png');
+const { width, height } = Dimensions.get("window");
+const BACK = require("../../../assets/back.png");
 
-export default function COEF7({ navigation }) {
-  const anim = useRef(new Animated.Value(0)).current;
+export default function COE7({ navigation }) {
+  const [ann1, setAnn1] = useState(null);
+  const [ann2, setAnn2] = useState(null);
+  const [ann3, setAnn3] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    let isActive = true;
+
+    (async () => {
+      try {
+        const media = await loadCcsMedia();
+        console.log("[COE7] media map =", media);
+
+        if (!isActive || !media) return;
+
+        // COE-specific slots (set these from AdminScreen)
+        setAnn1(media.coe_ann1 || null);
+        setAnn2(media.coe_ann2 || null);
+        setAnn3(media.coe_ann3 || null);
+
+        console.log("[COE7] coe_ann1 =", media.coe_ann1);
+        console.log("[COE7] coe_ann2 =", media.coe_ann2);
+        console.log("[COE7] coe_ann3 =", media.coe_ann3);
+      } catch (e) {
+        console.log("[COE7] failed to load media:", e);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   function navSafe(route) {
     if (navigation?.navigate) navigation.navigate(route);
   }
 
+  const renderSlot = (url) => (
+    <View style={m.slotCard}>
+      {/* COE orange gradient base */}
+      <LinearGradient
+        colors={["#FFB74D", "#F57C00"]}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <BlurView intensity={22} tint="light" style={StyleSheet.absoluteFill} />
+      {url && (
+        <Image
+          source={{ uri: url }}
+          style={m.slotImage}
+          resizeMode="cover"
+          onError={(e) =>
+            console.log("[COE7] slot image error:", e.nativeEvent)
+          }
+        />
+      )}
+      {loading && (
+        <View style={m.loadingOverlay}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
+      {!loading && !url && (
+        <View style={m.noImageOverlay}>
+          <Text style={m.noImageText}>No image set</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
-      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
+      />
+      {/* COE background: white + soft orange */}
+      <LinearGradient colors={["#ffffff", "#fff4e0"]} style={s.bg} />
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      <TouchableOpacity style={s.back} onPress={() => navSafe('COEF3')}>
+      {/* Back → COE3 hub */}
+      <TouchableOpacity style={s.back} onPress={() => navSafe("COEF3")}>
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
       <View style={s.container}>
-        {/* faint preview image (optional) */}
-        <Image source={{ uri: '/mnt/data/0b463c41-4eb7-4cd9-853c-b306b46c45b1.png' }} style={s.previewRef} resizeMode="contain" />
+        <Text style={s.title}>Announcements</Text>
+        <Text style={s.subtitle}>Latest updates from COE</Text>
 
-        {/* top narrow gradient bar */}
-        <View style={s.topBarWrap}>
-          <LinearGradient colors={['#FF5F6D', '#FFC371']} start={[0,0]} end={[1,1]} style={s.topBar} />
-        </View>
-
-        {/* big centered gradient card */}
-        <View style={s.bigCardWrapper}>
-          <LinearGradient colors={['#FF5F6D', '#FFC371']} start={[0,0]} end={[1,1]} style={s.bigCard} />
-          <View style={s.bigInnerBorder} pointerEvents="none" />
-          <Animated.View style={s.bigGloss} pointerEvents="none" />
-        </View>
-
-        {/* bottom wide bar with overlapping red square */}
-        <View style={s.bottomRow}>
-          <View style={s.bottomBarWrapper}>
-            <LinearGradient colors={['#FF5F6D', '#FFC371']} start={[0,0]} end={[1,1]} style={s.bottomBar} />
-            <Animated.View style={s.bottomBarGloss} pointerEvents="none" />
-          </View>
-
-          {/* overlapping small red square to the right of the bottom bar */}
-          <View style={s.bottomOverlapSquare} />
+        <View style={m.list}>
+          {renderSlot(ann1)}
+          {renderSlot(ann2)}
+          {renderSlot(ann3)}
         </View>
       </View>
     </SafeAreaView>
@@ -75,128 +125,100 @@ export default function COEF7({ navigation }) {
 
 /* styles */
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
+  screen: { flex: 1, backgroundColor: "#fff" },
   bg: { ...StyleSheet.absoluteFillObject },
 
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
+  // COE blobs: dark + orange
+  layerTopRight: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    borderRadius: 18,
+    backgroundColor: "#212121",
+    opacity: 0.4,
+  },
+  layerBottomLeft: {
+    position: "absolute",
+    left: -60,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: "#FB8C00",
+    opacity: 0.6,
+  },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 30 },
-  backImg: { width: 34, height: 34, tintColor: '#fff' },
+  back: {
+    position: "absolute",
+    right: 14,
+    top: 50,
+    width: 50,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 30,
+  },
+  backImg: { width: 34, height: 34, tintColor: "#fff" },
 
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',   // <-- this moves all shapes to the MIDDLE
+    alignItems: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 18,
+    paddingTop: 110,
   },
+  title: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#111",
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#555",
+  },
+});
 
-  previewRef: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 56,
-    height: 56,
-    opacity: 0.06,
-    zIndex: 5,
+const m = StyleSheet.create({
+  list: {
+    marginTop: 24,
+    width: Math.min(380, width - 40),
   },
-
-  /* TOP bar */
-  topBarWrap: {
-    width: Math.min(320, width - 64),
-    alignItems: 'center',
-    marginBottom: 18,
+  slotCard: {
+    width: "100%",
+    height: height * 0.18,
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    elevation: 8,
   },
-  topBar: {
-    width: '100%',
-    height: 100,    // <-- change this to resize the top bar height
-    borderRadius: 8,
+  slotImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
   },
-
-  /* Big card */
-  bigCardWrapper: {
-    width: Math.min(400, width - 50),   // match top bar width
-    height: Math.min(300, height * 0.36),
-    borderRadius: 10,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 20,
-    elevation: 10,
-    backgroundColor: '#fff',
+  loadingOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.15)",
   },
-  bigCard: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: '100%',
-    height: '100%',
+  noImageOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  bigInnerBorder: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    top: 10,
-    bottom: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.10)',
-  },
-  bigGloss: {
-    position: 'absolute',
-    left: -50,
-    top: -40,
-    width: 160,
-    height: 360,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.20)',
-    transform: [{ rotate: '22deg' }],
-    zIndex: 4,
-  },
-
-  /* bottom row */
-  bottomRow: {
-    width: Math.min(320, width - 64),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  bottomBarWrapper: {
-    flex: 1,
-    height: 100,   // <-- change to resize bottom bar height
-    width: 150,
-    borderRadius: 8,
-    overflow: 'hidden',
-    
-  },
-  bottomBar: {
-    width: '150%',
-    height: '100%',
-  },
-  bottomBarGloss: {
-    position: 'absolute',
-    left: -40,
-    top: -20,
-    width: 120,
-    height: 220,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    transform: [{ rotate: '22deg' }],
-  },
-  bottomOverlapSquare: {
-    width: 56,
-    height: 56,
-    backgroundColor: '#ff1b1b',
-    marginLeft: -26, // overlaps the bar edge
-    borderRadius: 4,
-    shadowColor: '#ff1b1b',
-    shadowOpacity: 0.32,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 12,
-    elevation: 10,
+  noImageText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

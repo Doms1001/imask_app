@@ -1,6 +1,7 @@
-// CCJF7.js — Gray & Black Theme 
+// frontend/src/screens/CCJ/CCJF7.js
+// CCJF7 – Announcements (slots: "ann1", "ann2", "ann3" for CCJ)
 
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -9,60 +10,116 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Animated,
   Platform,
   Text,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
 
-const { width, height } = Dimensions.get('window');
-const BACK = require('../../../assets/back.png');
+const { width, height } = Dimensions.get("window");
+const BACK = require("../../../assets/back.png");
+
+const DEPT = "CCJ";
+const SLOT1 = "ann1";
+const SLOT2 = "ann2";
+const SLOT3 = "ann3";
 
 export default function CCJF7({ navigation }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const [ann1, setAnn1] = useState(null);
+  const [ann2, setAnn2] = useState(null);
+  const [ann3, setAnn3] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    let isActive = true;
+
+    (async () => {
+      try {
+        const [u1, u2, u3] = await Promise.all([
+                  getDeptMediaUrl(DEPT, SLOT1),
+                  getDeptMediaUrl(DEPT, SLOT2),
+                  getDeptMediaUrl(DEPT, SLOT3),
+                ]);
+
+        if (!isActive) return;
+
+        setAnn1(u1 || null);
+        setAnn2(u2 || null);
+        setAnn3(u3 || null);
+
+        console.log("[CCJF7] fetched:", { u1, u2, u3 });
+
+      } catch (e) {
+        console.log("[CCJF7] failed to load CCJ announcements:", e);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   function navSafe(route) {
     if (navigation?.navigate) navigation.navigate(route);
   }
 
+  const renderSlot = (url) => (
+    <View style={m.slotCard}>
+      <LinearGradient
+        colors={["#3b3b3b", "#141414"]}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
+      {url && (
+        <Image
+          source={{ uri: url }}
+          style={m.slotImage}
+          resizeMode="cover"
+          onError={(e) =>
+            console.log("[CCJF7] slot image error:", e.nativeEvent)
+          }
+        />
+      )}
+      {loading && (
+        <View style={m.loadingOverlay}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
+      {!loading && !url && (
+        <View style={m.noImageOverlay}>
+          <Text style={m.noImageText}>No image set</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#0b0b0b', '#141414']} style={s.bg} />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "light-content" : "light-content"}
+      />
+      <LinearGradient colors={["#111111", "#050505"]} style={s.bg} />
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      <TouchableOpacity style={s.back} onPress={() => navSafe('CCJF3')}>
+      <TouchableOpacity style={s.back} onPress={() => navSafe("CCJF3")}>
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
       <View style={s.container}>
+        <Text style={s.title}>Announcements</Text>
+        <Text style={s.subtitle}>Latest updates from CCJ</Text>
 
-        {/* top narrow gray bar */}
-        <View style={s.topBarWrap}>
-          <LinearGradient colors={['#4a4a4a', '#0f0f0f']} start={[0,0]} end={[1,1]} style={s.topBar} />
-        </View>
-
-        {/* big centered dark card */}
-        <View style={s.bigCardWrapper}>
-          <LinearGradient colors={['#3b3b3b', '#0b0b0b']} start={[0,0]} end={[1,1]} style={s.bigCard} />
-          <View style={s.bigInnerBorder} pointerEvents="none" />
-          <Animated.View style={s.bigGloss} pointerEvents="none" />
-        </View>
-
-        {/* bottom wide bar with overlapping dark square */}
-        <View style={s.bottomRow}>
-          <View style={s.bottomBarWrapper}>
-            <LinearGradient colors={['#4a4a4a', '#0f0f0f']} start={[0,0]} end={[1,1]} style={s.bottomBar} />
-            <Animated.View style={s.bottomBarGloss} pointerEvents="none" />
-          </View>
-
-          {/* overlapping small dark square to the right of the bottom bar */}
-          <View style={s.bottomOverlapSquare} />
+        <View style={m.list}>
+          {renderSlot(ann1)}
+          {renderSlot(ann2)}
+          {renderSlot(ann3)}
         </View>
       </View>
     </SafeAreaView>
@@ -71,127 +128,99 @@ export default function CCJF7({ navigation }) {
 
 /* styles */
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0b0b0b' },
+  screen: { flex: 1, backgroundColor: "#000" },
   bg: { ...StyleSheet.absoluteFillObject },
 
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 220, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.02)' },
-  layerBottomLeft: { position: 'absolute', left: -60, bottom: -80, width: 260, height: 260, borderRadius: 160, backgroundColor: 'rgba(255,255,255,0.01)', opacity: 0.9 },
+  layerTopRight: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    borderRadius: 18,
+    backgroundColor: "#2f2f2f",
+    opacity: 0.32,
+  },
+  layerBottomLeft: {
+    position: "absolute",
+    left: -60,
+    bottom: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: "#444444",
+    opacity: 0.55,
+  },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 30 },
-  backImg: { width: 34, height: 34, tintColor: '#cfcfcf' },
+  back: {
+    position: "absolute",
+    right: 14,
+    top: Platform.OS === "android" ? 18 : 50,
+    width: 50,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 30,
+  },
+  backImg: { width: 34, height: 34, tintColor: "#ffffff" },
 
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 18,
+    paddingTop: 110,
   },
+  title: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#f5f5f5",
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#bfbfbf",
+  },
+});
 
-  previewRef: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 56,
-    height: 56,
-    opacity: 0.06,
-    zIndex: 5,
+const m = StyleSheet.create({
+  list: {
+    marginTop: 24,
+    width: Math.min(380, width - 40),
   },
-
-  /* TOP bar */
-  topBarWrap: {
-    width: Math.min(320, width - 64),
-    alignItems: 'center',
-    marginBottom: 18,
+  slotCard: {
+    width: "100%",
+    height: height * 0.18,
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    elevation: 8,
   },
-  topBar: {
-    width: '100%',
-    height: 100,
-    borderRadius: 8,
+  slotImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
   },
-
-  /* Big card */
-  bigCardWrapper: {
-    width: Math.min(400, width - 50),
-    height: Math.min(300, height * 0.36),
-    borderRadius: 10,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 20,
-    elevation: 10,
-    backgroundColor: 'transparent',
+  loadingOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.22)",
   },
-  bigCard: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: '100%',
-    height: '100%',
+  noImageOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  bigInnerBorder: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    top: 10,
-    bottom: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
-  },
-  bigGloss: {
-    position: 'absolute',
-    left: -50,
-    top: -40,
-    width: 160,
-    height: 360,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    transform: [{ rotate: '22deg' }],
-    zIndex: 4,
-  },
-
-  /* bottom row */
-  bottomRow: {
-    width: Math.min(320, width - 64),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  bottomBarWrapper: {
-    flex: 1,
-    height: 100,
-    width: 150,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  bottomBar: {
-    width: '150%',
-    height: '100%',
-  },
-  bottomBarGloss: {
-    position: 'absolute',
-    left: -40,
-    top: -20,
-    width: 120,
-    height: 220,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    transform: [{ rotate: '22deg' }],
-  },
-  bottomOverlapSquare: {
-    width: 56,
-    height: 56,
-    backgroundColor: '#2a2a2a',
-    marginLeft: -26, // overlaps the bar edge
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 12,
-    elevation: 10,
+  noImageText: {
+    color: "#f5f5f5",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

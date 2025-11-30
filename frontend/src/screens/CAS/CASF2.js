@@ -1,30 +1,26 @@
-// CASF2.js (Violet Theme + Parallax + Pulse) — RETHEMED
+// frontend/src/screens/CAS/CASF2.js
 import React, { useRef, useState, useEffect } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
-  Platform,
   Image,
   ScrollView,
   Animated,
+  useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import BottomPager from "../../components/BottomPager"; // shared pager
-
-const { width, height } = Dimensions.get("window");
-const CONTAINER_W = Math.min(420, width - 28);
-const CARD_GAP = 18;
-const CARD_W = CONTAINER_W;
-const VISIBLE_W = CARD_W + CARD_GAP;
+import BottomPager from "../../components/BottomPager";
 
 const LOGO = require("../../../assets/CASlogo.png");
 const BACK = require("../../../assets/back.png");
 
+// ========================================
+//   DATA CONTENT (CAS PROGRAMS)
+// ========================================
 const DATA = [
   {
     title: "Bachelor of Arts in Psychology",
@@ -56,21 +52,51 @@ const DATA = [
 ];
 
 export default function CASF2({ navigation }) {
-  const scrollRef = useRef(null);
-  const [index, setIndex] = useState(0);
-  const parallax = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
+  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
 
+  // Responsive scale (same as CCSF2)
+  const BASE_W = 390;
+  const BASE_H = 844;
+  const scale = SCREEN_W / BASE_W;
+  const vScale = SCREEN_H / BASE_H;
+  const normalize = (s) => s * scale;
+  const vNormalize = (s) => s * vScale;
+
+  const CARD_GAP = normalize(20);
+  const CARD_W = Math.min(SCREEN_W * 0.9, 420);
+  const VISIBLE_W = CARD_W + CARD_GAP;
+
+  const scrollRef = useRef(null);
+  const parallax = useRef(new Animated.Value(0)).current;
+  const [index, setIndex] = useState(0);
+
+  // subtle breathing pulse
+  const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 1700,
+          useNativeDriver: true,
+        }),
       ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
+    ).start();
+  }, []);
+
+  const pulseScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.045],
+  });
+
+  function handleScroll(e) {
+    parallax.setValue(e.nativeEvent.contentOffset.x);
+  }
 
   function onMomentumScrollEnd(e) {
     const x = e.nativeEvent.contentOffset.x || 0;
@@ -78,40 +104,65 @@ export default function CASF2({ navigation }) {
     setIndex(Math.max(0, Math.min(ix, DATA.length - 1)));
   }
 
-  function handleScroll(e) {
-    const x = e.nativeEvent.contentOffset.x || 0;
-    parallax.setValue(x);
+  function navBack() {
+    navigation.navigate("CASF1");
   }
-
-  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.03] });
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar
-        barStyle={Platform.OS === "android" ? "light-content" : "dark-content"}
-        translucent={false}
+      <StatusBar barStyle="light-content" />
+
+      {/* --- BACKGROUND LAYERS (VIOLET THEME) --- */}
+      <LinearGradient
+        colors={["#fbf7ff", "#efe6ff"]}
+        style={StyleSheet.absoluteFill}
       />
 
-      {/* soft violet background */}
-      <LinearGradient colors={["#fbf7ff", "#efe6ff"]} style={s.bg} />
+      {/* Animated floating violet orb */}
+      <Animated.View
+        style={[
+          s.floatingOrb,
+          {
+            top: vNormalize(-60),
+            right: normalize(-40),
+            transform: [{ scale: pulseScale }],
+          },
+        ]}
+      />
 
-      {/* decorative violet shapes */}
-      <View style={s.layerTopRight} />
-      <View style={s.layerBottomLeft} />
-      <View style={s.layerCenterGlow} />
+      {/* Subtle dark violet blurred layer */}
+      <View
+        style={[
+          s.blurLayer,
+          {
+            left: normalize(-80),
+            bottom: vNormalize(-60),
+          },
+        ]}
+      />
 
-      {/* back button */}
+      {/* --- BACK BUTTON --- */}
       <TouchableOpacity
-        style={s.back}
-        onPress={() => navigation && navigation.navigate ? navigation.navigate("CASF1") : null}
-        accessible
-        accessibilityLabel="Back"
+        onPress={navBack}
+        style={[s.backBtn, { top: vNormalize(10), right: normalize(12) }]}
       >
-        <Image source={BACK} style={s.backImg} />
+        <Image
+          source={BACK}
+          style={{
+            width: normalize(32),
+            height: normalize(32),
+            tintColor: "#ffffff",
+          }}
+        />
       </TouchableOpacity>
 
-      {/* carousel */}
-      <View style={s.carouselWrap}>
+      {/* --- CARDS WRAPPER --- */}
+      <View
+        style={[
+          s.carouselWrap,
+          { width: CARD_W, height: Math.min(SCREEN_H * 0.7, 520) },
+        ]}
+      >
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -119,25 +170,32 @@ export default function CASF2({ navigation }) {
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           snapToInterval={VISIBLE_W}
-          snapToAlignment="start"
-          contentContainerStyle={[s.scrollContent, { paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2 }]}
+          contentContainerStyle={{
+            paddingHorizontal: (SCREEN_W - CARD_W) / 2 - CARD_GAP / 2,
+          }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: parallax } } }],
+            { listener: handleScroll, useNativeDriver: false }
+          )}
           onMomentumScrollEnd={onMomentumScrollEnd}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: parallax } } }], {
-            useNativeDriver: false,
-            listener: handleScroll,
-          })}
           scrollEventThrottle={16}
         >
           {DATA.map((it, i) => {
-            const input = [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W];
+            const input = [
+              (i - 1) * VISIBLE_W,
+              i * VISIBLE_W,
+              (i + 1) * VISIBLE_W,
+            ];
+
             const rotate = parallax.interpolate({
               inputRange: input,
-              outputRange: ["-3deg", "0deg", "3deg"],
+              outputRange: ["-4deg", "0deg", "4deg"],
               extrapolate: "clamp",
             });
-            const scale = parallax.interpolate({
+
+            const scaleCard = parallax.interpolate({
               inputRange: input,
-              outputRange: [0.98, 1, 0.98],
+              outputRange: [0.95, 1, 0.95],
               extrapolate: "clamp",
             });
 
@@ -148,25 +206,87 @@ export default function CASF2({ navigation }) {
             });
 
             return (
-              <Animated.View key={i} style={[s.cardContainer, { transform: [{ rotate }, { scale }] }]}>
-                <LinearGradient colors={["#7b2cbf", "#5a189a"]} style={s.card}>
+              <Animated.View
+                key={i}
+                style={[
+                  s.cardContainer,
+                  {
+                    width: CARD_W,
+                    marginRight: CARD_GAP,
+                    transform: [{ rotate }, { scale: scaleCard }],
+                  },
+                ]}
+              >
+                {/* CARD BASE (VIOLET GRADIENT) */}
+                <LinearGradient
+                  colors={["#7b2cbf", "#5a189a"]}
+                  style={[
+                    s.card,
+                    {
+                      padding: normalize(20),
+                      borderRadius: normalize(22),
+                    },
+                  ]}
+                >
+                  {/* CARD SHINE OVERLAY */}
+                  <View style={s.shineOverlay} />
+
+                  {/* BACKGROUND LOGO (CAS) */}
                   <Animated.Image
                     source={LOGO}
                     style={[
                       s.cardLogo,
                       {
-                        transform: [{ translateX: logoTranslate }, { scale: pulseScale }],
+                        height: vNormalize(210),
+                        top: vNormalize(30),
+                        opacity: 0.23,
+                        transform: [
+                          { translateX: logoTranslate },
+                          { scale: pulseScale },
+                        ],
                       },
                     ]}
                     resizeMode="contain"
                   />
 
-                  <View style={s.textBlock}>
-                    <Text style={s.h1} numberOfLines={2}>
+                  {/* TEXT CONTENT */}
+                  <View style={{ marginTop: vNormalize(72) }}>
+                    <Text
+                      style={[
+                        s.h1,
+                        {
+                          fontSize: normalize(20),
+                          lineHeight: normalize(26),
+                        },
+                      ]}
+                    >
                       {it.title}
                     </Text>
-                    <Text style={s.h2}>{it.subtitle}</Text>
-                    <Text style={s.p}>{it.desc}</Text>
+
+                    <Text
+                      style={[
+                        s.h2,
+                        {
+                          fontSize: normalize(14),
+                          marginTop: vNormalize(6),
+                        },
+                      ]}
+                    >
+                      {it.subtitle}
+                    </Text>
+
+                    <Text
+                      style={[
+                        s.p,
+                        {
+                          fontSize: normalize(12),
+                          lineHeight: normalize(18),
+                          marginTop: vNormalize(10),
+                        },
+                      ]}
+                    >
+                      {it.desc}
+                    </Text>
                   </View>
                 </LinearGradient>
               </Animated.View>
@@ -175,81 +295,90 @@ export default function CASF2({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* bottom pager (shared component) */}
-      <BottomPager navigation={navigation} activeIndex={index} targets={["CASF2", "CASF3", "CASF4"]} />
+      {/* --- BOTTOM PAGER --- */}
+      <BottomPager
+        navigation={navigation}
+        targets={["CASF2", "CASF3", "CASF4"]}
+        theme="CAS" // CAS violet theme
+        activeIndex={index}
+      />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#fff", alignItems: "center" },
-  bg: { ...StyleSheet.absoluteFillObject },
+  screen: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+  },
 
-  // violet decorative layers
-  layerTopRight: {
+  floatingOrb: {
     position: "absolute",
-    right: -40,
-    top: -20,
     width: 220,
     height: 220,
-    borderRadius: 18,
-    backgroundColor: "#7b2cbf",
-    opacity: 0.14,
+    borderRadius: 200,
+    backgroundColor: "#b185ff",
+    opacity: 0.55,
   },
-  layerBottomLeft: {
+
+  blurLayer: {
     position: "absolute",
-    left: -60,
-    bottom: -80,
-    width: 260,
-    height: 260,
-    borderRadius: 160,
-    backgroundColor: "#c9a6ff",
-    opacity: 0.28,
-  },
-  layerCenterGlow: {
-    position: "absolute",
-    left: (width / 2) - 140,
-    top: height * 0.22,
-    width: 280,
-    height: 280,
-    borderRadius: 999,
-    backgroundColor: "#e9dbff",
+    width: 300,
+    height: 300,
+    borderRadius: 200,
+    backgroundColor: "#4c1d95",
     opacity: 0.18,
   },
 
-  back: {
+  backBtn: {
     position: "absolute",
-    right: 14,
-    top: Platform.OS === "android" ? 14 : 50,
-    width: 50,
-    height: 48,
+    padding: 8,
+    zIndex: 20,
+  },
+
+  carouselWrap: {
+    marginTop: 40,
     alignItems: "center",
-    justifyContent: "center",
-    zIndex: 50,
   },
-  backImg: { width: 34, height: 34, tintColor: "#fff", opacity: 0.98 },
 
-  carouselWrap: { marginTop: 36, width: CONTAINER_W, height: Math.min(560, height * 0.72) },
-  scrollContent: { alignItems: "center" },
-  cardContainer: { width: CARD_W, marginRight: CARD_GAP },
+  cardContainer: {
+    overflow: "visible",
+  },
+
   card: {
-    borderRadius: 20,
-    padding: 22,
-    minHeight: "100%",
+    height: "100%",
     overflow: "hidden",
-    alignItems: "flex-start",
-    // subtle shadow on Android/iOS
-    shadowColor: "#5b2bbf",
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    elevation: 8,
+    justifyContent: "flex-start",
   },
 
-  cardLogo: { position: "absolute", width: "80%", height: 210, opacity: 0.65, top: 45, right: 19 },
+  shineOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    transform: [{ rotate: "45deg" }],
+    width: "180%",
+    height: "180%",
+    top: -80,
+    left: -60,
+  },
 
-  textBlock: { marginTop: 90 },
-  h1: { color: "#fff", fontSize: 3, fontWeight: "800", lineHeight: 50, marginTop: 150 },
-  h2: { color: "rgba(255,255,255,0.95)", fontSize: 14, fontWeight: "700", marginTop: 6, opacity: 0.95 },
-  p: { color: "rgba(255,255,255,0.95)", marginTop: 10, lineHeight: 18, fontWeight: "400" },
+  cardLogo: {
+    position: "absolute",
+    width: "85%",
+    right: 10,
+  },
+
+  h1: {
+    color: "#fff",
+    fontWeight: "800",
+  },
+  h2: {
+    color: "#fff",
+    opacity: 0.95,
+    fontWeight: "700",
+  },
+  p: {
+    color: "rgba(255,255,255,0.95)",
+    fontWeight: "400",
+  },
 });

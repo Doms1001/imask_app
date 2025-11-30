@@ -15,10 +15,14 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCcsMediaUrl } from "../../lib/ccsMediaHelpers";
+import { getDeptMediaUrl } from "../../lib/ccsMediaHelpers";
+
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
+
+const DEPT = "CAS";
+const SLOT = "essentials";
 
 export default function CCSF10({ navigation }) {
   const [imgUrl, setImgUrl] = useState(null);
@@ -33,7 +37,7 @@ export default function CCSF10({ navigation }) {
 
     (async () => {
       try {
-        const url = await getCcsMediaUrl("essentials");
+        const url = await getDeptMediaUrl(DEPT, SLOT);
         console.log("[CCSF10] essentials url =", url);
         if (isActive) setImgUrl(url);
       } finally {

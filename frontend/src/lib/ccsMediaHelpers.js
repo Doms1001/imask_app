@@ -1,206 +1,304 @@
 // src/lib/ccsMediaHelpers.js
-// All CCS images + tuition config helpers
+// Shared helper for ALL departments (CCS, CBA, CAS, COA, COE, CCJ)
 
 import "react-native-url-polyfill/auto";
 import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
-import { supabase } from "../services/supabaseClient";
+import { supabase } from "./supabaseClient";
+import {
+  getCachedImage,
+  cacheDownloadImage,
+  saveFeesCache,
+  loadFeesCache,
+} from "./appCache";
 
-const CCS_BUCKET = "department_images"; // your bucket
-const CCS_DEPT = "CCS";
+const BUCKET = "department_images";
+const MEDIA_TABLE = "department_media";
+const FEES_TABLE = "department_fees";
 
-// Helper: safely get extension from a URI
-function getFileExtension(uri) {
+/* ======================================================================== */
+/*  FILE / STORAGE HELPERS                                                  */
+/* ======================================================================== */
+
+// Safely get file extension from URI
+function getExt(uri) {
   if (!uri) return "png";
-
-  // Strip query params if any (e.g. file.png?someParam=123)
-  const withoutQuery = uri.split("?")[0];
-
-  const parts = withoutQuery.split(".");
-  if (parts.length < 2) return "png";
-
-  const ext = parts.pop().toLowerCase();
-  // basic whitelist
-  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
-    return ext;
-  }
+  const clean = uri.split("?")[0];
+  const ext = clean.split(".").pop().toLowerCase();
+  if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) return ext;
   return "png";
 }
 
 /**
- * Upload one CCS image (newsMain, eventsTop, etc.) to Storage + department_media
+ * Upload image for ANY department.
+ * Storage path:  dept/slot-timestamp.ext
  */
-export async function uploadCcsMedia(slot, localUri) {
+export async function uploadDeptMedia(dept, slot, localUri) {
   try {
-    console.log("[uploadCcsMedia] slot =", slot, "uri =", localUri);
+    const info = await FileSystem.getInfoAsync(localUri);
+    if (!info.exists) return null;
 
-    if (!localUri) {
-      console.log("[uploadCcsMedia] no localUri, abort");
-      return null;
-    }
-
-    // -------------------------------
-    // 1. Read file as binary (legacy API)
-    // -------------------------------
-    const fileInfo = await FileSystem.getInfoAsync(localUri);
-    if (!fileInfo.exists) {
-      console.log("[uploadCcsMedia] file does NOT exist");
-      return null;
-    }
-
-    const fileBase64 = await FileSystem.readAsStringAsync(localUri, {
+    const b64 = await FileSystem.readAsStringAsync(localUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // Convert base64 → binary (Uint8Array)
-    const binary = decode(fileBase64);
+    const bin = decode(b64);
+    const ext = getExt(localUri);
+    const fileName = `${dept}/${slot}-${Date.now()}.${ext}`;
 
-    // -------------------------------
-    // 2. Build file name
-    // -------------------------------
-    const fileExt = getFileExtension(localUri);
-    const fileName = `CCS/${slot}-${Date.now()}.${fileExt}`;
-
-    // -------------------------------
-    // 3. Upload to Supabase Storage
-    // -------------------------------
-    const { error: uploadError } = await supabase.storage
-      .from(CCS_BUCKET)
-      .upload(fileName, binary, {
-        contentType: `image/${fileExt === "jpg" ? "jpeg" : fileExt}`,
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(fileName, bin, {
+        contentType: `image/${ext === "jpg" ? "jpeg" : ext}`,
         upsert: true,
       });
 
-    if (uploadError) {
-      console.log("[uploadCcsMedia] upload failed:", uploadError);
+    if (uploadErr) {
+      console.log("[uploadDeptMedia] upload error:", uploadErr);
       return null;
     }
 
-    // -------------------------------
-    // 4. Get a public URL
-    // -------------------------------
-    const { data } = supabase.storage.from(CCS_BUCKET).getPublicUrl(fileName);
+    // Get public URL
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
     const publicUrl = data?.publicUrl;
 
-    console.log("[uploadCcsMedia] publicUrl =", publicUrl);
-
-    // -------------------------------
-    // 5. Save mapping to DB
-    // -------------------------------
-    const { error: dbError } = await supabase
-      .from("department_media")
+    // Save mapping to department_media
+    const { error: dbErr } = await supabase
+      .from(MEDIA_TABLE)
       .upsert(
         {
-          department: CCS_DEPT,
+          department: dept,
           slot,
           image_url: publicUrl,
         },
         { onConflict: "department,slot" }
       );
 
-    if (dbError) {
-      console.log("[uploadCcsMedia] DB error:", dbError);
+    if (dbErr) {
+      console.log("[uploadDeptMedia] db error:", dbErr);
       return null;
+    }
+
+    // ⭐ NEW: also update local cache so new image works offline immediately
+    try {
+      if (publicUrl) {
+        await cacheDownloadImage(dept, slot, publicUrl);
+      }
+    } catch (cacheErr) {
+      console.log("[uploadDeptMedia] cache error:", cacheErr);
+      // we still return publicUrl even if caching fails
     }
 
     return publicUrl;
   } catch (err) {
-    console.log("[uploadCcsMedia] FINAL ERROR:", err);
+    console.log("[uploadDeptMedia] fatal:", err);
     return null;
   }
 }
 
 /**
- * Get image URL for a CCS slot from department_media
+ * Get image URL for ANY department + slot.
+ * Now offline-first: tries cache, then Supabase, then caches it.
  */
-export async function getCcsMediaUrl(slot) {
+export async function getDeptMediaUrl(dept, slot) {
+  // ⭐ 1) Try local cached file first (works offline)
+  try {
+    const cachedUri = await getCachedImage(dept, slot);
+    if (cachedUri) {
+      return cachedUri; // file:// URI
+    }
+  } catch (cacheErr) {
+    console.log("[getDeptMediaUrl] cache read error:", cacheErr);
+  }
+
+  // ⭐ 2) Fallback: online from Supabase
   try {
     const { data, error } = await supabase
-      .from("department_media")
+      .from(MEDIA_TABLE)
       .select("image_url")
-      .eq("department", CCS_DEPT)
+      .eq("department", dept)
       .eq("slot", slot)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return null;
-    return data.image_url || null;
+
+    const url = data?.image_url || null;
+    if (!url) return null;
+
+    // ⭐ 3) Cache it for next time (offline)
+    try {
+      const uri = await cacheDownloadImage(dept, slot, url);
+      return uri || url; // prefer cached file, fallback to remote
+    } catch (cacheErr) {
+      console.log("[getDeptMediaUrl] cacheDownloadImage error:", cacheErr);
+      return url; // still usable online
+    }
   } catch (err) {
-    console.log("[getCcsMediaUrl] error:", err);
+    console.log("[getDeptMediaUrl] error:", err);
     return null;
   }
 }
 
 /**
- * Load *all* CCS media as { slot: url, ... } – so AdminScreen can preload previews
+ * Load ALL media for one department.
+ * Returns: { slotKey: url, ... }
+ * (We leave this online-only for now; per-slot calls use the cache.)
  */
-export async function loadCcsMedia() {
+export async function loadDeptMedia(dept) {
   try {
     const { data, error } = await supabase
-      .from("department_media")
+      .from(MEDIA_TABLE)
       .select("slot, image_url")
-      .eq("department", CCS_DEPT);
+      .eq("department", dept);
 
     if (error) throw error;
-    if (!data) return {};
 
     const map = {};
-    for (const row of data) {
+    (data || []).forEach((row) => {
       map[row.slot] = row.image_url;
-    }
-    console.log("[loadCcsMedia] loaded media:", map);
+    });
+
     return map;
   } catch (err) {
-    console.log("[loadCcsMedia] error:", err);
+    console.log("[loadDeptMedia] error:", err);
     return {};
   }
 }
 
-/**
- * Save CCS tuition + fees (used by AdminScreen → CCSF8)
- * payload example:
- * { sem:'1st', year:'1', acadYear:'2027-2028', tuition:'150', ... }
- */
-export async function saveCcsFees(payload) {
-  try {
-    console.log("[saveCcsFees] tuition payload:", payload);
+/* ======================================================================== */
+/*  FEES HELPERS (F8 screens)                                               */
+/*  Uses TABLE: department_fees                                             */
+/* ======================================================================== */
 
-    const { error } = await supabase
-      .from("department_content")
-      .upsert(
-        {
-          department: CCS_DEPT,
-          slot: "8", // CCSF8 slot
-          text: JSON.stringify(payload),
-        },
-        { onConflict: "department,slot" }
-      );
+/**
+ * Save F8 fees for a department.
+ * Table: department_fees
+ * Row columns:
+ *   dept, sem, year, acadYear,
+ *   tuition, lab, nonLab, misc, nstp, otherFee,
+ *   discount, down
+ */
+export async function saveDeptFees(dept, payload) {
+  try {
+    const { error } = await supabase.from(FEES_TABLE).upsert(
+      {
+        dept,
+        ...payload,
+      },
+      {
+        onConflict: "dept", // one row per department
+      }
+    );
 
     if (error) throw error;
+
+    // ⭐ NEW: refresh cache with latest row
+    try {
+      const fresh = await loadDeptFees(dept);
+      if (fresh) {
+        await saveFeesCache(dept, fresh);
+      }
+    } catch (cacheErr) {
+      console.log("[saveDeptFees] cache update error:", cacheErr);
+    }
+
     return true;
   } catch (err) {
-    console.log("[saveCcsFees] error:", err);
+    console.log("[saveDeptFees] error:", err);
     return false;
   }
 }
 
 /**
- * Load CCS tuition + fees for CCSF8
+ * Load F8 fees for a department.
+ * Returns the full row or null.
+ * Now: online-first, offline fallback.
  */
-export async function loadCcsFees() {
+export async function loadDeptFees(dept) {
   try {
     const { data, error } = await supabase
-      .from("department_content")
-      .select("text")
-      .eq("department", CCS_DEPT)
-      .eq("slot", "8")
+      .from(FEES_TABLE)
+      .select("*")
+      .eq("dept", dept)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data || !data.text) return null;
-    return JSON.parse(data.text);
+
+    const row = data || null;
+
+    // ⭐ NEW: update cache when online works
+    try {
+      if (row) {
+        await saveFeesCache(dept, row);
+      }
+    } catch (cacheErr) {
+      console.log("[loadDeptFees] cache save error:", cacheErr);
+    }
+
+    return row;
   } catch (err) {
-    console.log("[loadCcsFees] error:", err);
-    return null;
+    console.log("[loadDeptFees] error:", err);
+
+    // ⭐ NEW: fallback to cached fees if Supabase fails (offline mode)
+    try {
+      const cached = await loadFeesCache(dept);
+      return cached || null;
+    } catch (cacheErr) {
+      console.log("[loadDeptFees] cache load error:", cacheErr);
+      return null;
+    }
   }
 }
+
+/* ======================================================================== */
+/*  CONVENIENCE WRAPPERS PER DEPARTMENT                                     */
+/*  (So screens can keep using getCcsMediaUrl, loadCasFees, etc.)           */
+/* ======================================================================== */
+
+// ---- CCS ----
+export const uploadCcsMedia = (slot, uri) =>
+  uploadDeptMedia("CCS", slot, uri);
+export const getCcsMediaUrl = (slot) => getDeptMediaUrl("CCS", slot);
+export const loadCcsMedia = () => loadDeptMedia("CCS");
+export const saveCcsFees = (payload) => saveDeptFees("CCS", payload);
+export const loadCcsFees = () => loadDeptFees("CCS");
+
+// ---- CBA ----
+export const uploadCbaMedia = (slot, uri) =>
+  uploadDeptMedia("CBA", slot, uri);
+export const getCbaMediaUrl = (slot) => getDeptMediaUrl("CBA", slot);
+export const loadCbaMedia = () => loadDeptMedia("CBA");
+export const saveCbaFees = (payload) => saveDeptFees("CBA", payload);
+export const loadCbaFees = () => loadDeptFees("CBA");
+
+// ---- CAS ----
+export const uploadCasMedia = (slot, uri) =>
+  uploadDeptMedia("CAS", slot, uri);
+export const getCasMediaUrl = (slot) => getDeptMediaUrl("CAS", slot);
+export const loadCasMedia = () => loadDeptMedia("CAS");
+export const saveCasFees = (payload) => saveDeptFees("CAS", payload);
+export const loadCasFees = () => loadDeptFees("CAS");
+
+// ---- COA ----
+export const uploadCoaMedia = (slot, uri) =>
+  uploadDeptMedia("COA", slot, uri);
+export const getCoaMediaUrl = (slot) => getDeptMediaUrl("COA", slot);
+export const loadCoaMedia = () => loadDeptMedia("COA");
+export const saveCoaFees = (payload) => saveDeptFees("COA", payload);
+export const loadCoaFees = () => loadDeptFees("COA");
+
+// ---- COE ----
+export const uploadCoeMedia = (slot, uri) =>
+  uploadDeptMedia("COE", slot, uri);
+export const getCoeMediaUrl = (slot) => getDeptMediaUrl("COE", slot);
+export const loadCoeMedia = () => loadDeptMedia("COE");
+export const saveCoeFees = (payload) => saveDeptFees("COE", payload);
+export const loadCoeFees = () => loadDeptFees("COE");
+
+// ---- CCJ ----
+export const uploadCcjMedia = (slot, uri) =>
+  uploadDeptMedia("CCJ", slot, uri);
+export const getCcjMediaUrl = (slot) => getDeptMediaUrl("CCJ", slot);
+export const loadCcjMedia = () => loadDeptMedia("CCJ");
+export const saveCcjFees = (payload) => saveDeptFees("CCJ", payload);
+export const loadCcjFees = () => loadDeptFees("CCJ");

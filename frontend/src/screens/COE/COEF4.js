@@ -1,3 +1,6 @@
+// frontend/src/screens/COE/COEF4.js
+// COEF4 – 3 cards (Tuition / Uniform / FAQ) based on CCSF4, COE orange/white/black theme
+
 import React, { useRef, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -18,34 +21,24 @@ import BottomPager from '../../components/BottomPager';
 const { width, height } = Dimensions.get('window');
 const BACK = require('../../../assets/back.png');
 
-// Your card images (Option A: keep your existing images)
-const IMG_TUITION = require('../../../assets/tuition.png'); // top (uses NEWS gradient)
-const IMG_UNIFORM = require('../../../assets/uniform.png'); // left (uses ANNOUNCE gradient)
-const IMG_FAQ = require('../../../assets/faq.png'); // right (uses EVENT gradient)
-
-// Uploaded preview path (kept as a variable if you want to use it later)
-const UPLOADED_PREVIEW_PATH = '/mnt/data/7d4d84be-995d-4e5d-aeed-c13364c3ee98.png';
+const IMG_TUITION = require('../../../assets/tuition.png');
+const IMG_UNIFORM = require('../../../assets/uniform.png');
+const IMG_FAQ = require('../../../assets/faq.png');
 
 export default function COEF4({ navigation }) {
-  // entrance animation
   const entrance = useRef(new Animated.Value(0)).current;
-
-  // shimmer global animated value
   const shimmer = useRef(new Animated.Value(-1)).current;
 
-  // press scales and tilt for 3 cards
   const pressScales = [
-    useRef(new Animated.Value(1)).current, // top
-    useRef(new Animated.Value(1)).current, // left
-    useRef(new Animated.Value(1)).current, // right
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
   ];
   const tilt = [
     useRef(new Animated.ValueXY({ x: 0, y: 0 })).current,
     useRef(new Animated.ValueXY({ x: 0, y: 0 })).current,
     useRef(new Animated.ValueXY({ x: 0, y: 0 })).current,
   ];
-
-  // glow opacities under cards (animated)
   const glowOpac = [
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
@@ -55,7 +48,6 @@ export default function COEF4({ navigation }) {
   useEffect(() => {
     Animated.timing(entrance, { toValue: 1, duration: 700, useNativeDriver: true }).start();
 
-    // shimmer loop
     Animated.loop(
       Animated.timing(shimmer, {
         toValue: 1,
@@ -64,8 +56,7 @@ export default function COEF4({ navigation }) {
       })
     ).start();
 
-    // idle glow pulses (staggered)
-    const pulses = glowOpac.map((g) =>
+    const pulses = glowOpac.map(g =>
       Animated.loop(
         Animated.sequence([
           Animated.timing(g, { toValue: 0.12, duration: 1200, useNativeDriver: true }),
@@ -74,26 +65,17 @@ export default function COEF4({ navigation }) {
       )
     );
     Animated.stagger(200, pulses).start();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // shimmer translate (for the glossy overlay)
   const shimmerTranslate = shimmer.interpolate({
     inputRange: [-1, 1],
     outputRange: [-width * 0.6, width * 0.8],
   });
 
-  // safe navigate
   function navSafe(route) {
-    if (!navigation || typeof navigation.navigate !== 'function') {
-      console.log('Navigation unavailable — target:', route);
-      return;
-    }
-    navigation.navigate(route);
+    if (navigation?.navigate) navigation.navigate(route);
   }
 
-  // PanResponder factory for tilt on card (subtle follow)
   function makeResponder(i) {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -127,7 +109,6 @@ export default function COEF4({ navigation }) {
 
   const responders = [makeResponder(0), makeResponder(1), makeResponder(2)];
 
-  // helper: card animated style from tilt + entrance + press
   function cardAnimatedStyle(i) {
     const translateY = entrance.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
     const baseScale = entrance.interpolate({ inputRange: [0, 1], outputRange: [0.992, 1] });
@@ -141,15 +122,17 @@ export default function COEF4({ navigation }) {
     };
   }
 
-  // glow style under card
   function glowStyle(i) {
     return {
       opacity: glowOpac[i],
-      transform: [{ scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.04] }) }],
+      transform: [
+        {
+          scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.04] }),
+        },
+      ],
     };
   }
 
-  // press handler for giving a stronger glow and navigation
   function handlePress(i, route) {
     Animated.sequence([
       Animated.parallel([
@@ -166,7 +149,8 @@ export default function COEF4({ navigation }) {
   return (
     <SafeAreaView style={s.screen}>
       <StatusBar barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'} />
-      <LinearGradient colors={['#fff', '#f7f7f9']} style={s.bg} />
+      {/* COE background: white + black/orange shapes */}
+      <LinearGradient colors={['#ffffff', '#fff6e9']} style={s.bg} />
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
@@ -174,50 +158,86 @@ export default function COEF4({ navigation }) {
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
 
-      {/* Centered block — slightly lower so it visually sits in the middle */}
       <View style={s.centerContainer}>
-        {/* TOP card (TUITION) - uses NEWS gradient from CCSF3 */}
+        {/* TOP card – Tuition -> COEF8 */}
         <Animated.View {...responders[0].panHandlers} style={[s.topWrapper, cardAnimatedStyle(0)]}>
-          <TouchableWithoutFeedback onPress={() => handlePress(0, 'COEF8')} onPressIn={() => pressScales[0].setValue(0.96)} onPressOut={() => pressScales[0].setValue(1)}>
-            <Animated.View style={[s.topCard]}>
-              {/* gradient background */}
-              <LinearGradient colors={['#FF5F6D', '#FFC371']} start={[0, 0]} end={[1, 1]} style={StyleSheet.absoluteFill} />
-              {/* inner shadow */}
+          <TouchableWithoutFeedback onPress={() => handlePress(0, 'COEF8')}>
+            <Animated.View style={s.topCard}>
+              <LinearGradient
+                colors={['#fb8c00', '#ffb74d']} // orange gradient
+                start={[0, 0]}
+                end={[1, 1]}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={s.innerShadowTop} pointerEvents="none" />
-              {/* shimmer overlay */}
-              <Animated.View style={[s.shimmer, { transform: [{ translateX: shimmerTranslate }, { rotate: '22deg' }] }]} pointerEvents="none" />
-              {/* image */}
+              <Animated.View
+                style={[
+                  s.shimmer,
+                  { transform: [{ translateX: shimmerTranslate }, { rotate: '22deg' }] },
+                ]}
+                pointerEvents="none"
+              />
               <Image source={IMG_TUITION} style={s.topImage} resizeMode="contain" />
-              {/* glow under card */}
-              <Animated.View style={[s.cardGlow, glowStyle(0)]} pointerEvents="none" />
+              <Animated.View
+                style={[s.cardGlow, glowStyle(0)]}
+                pointerEvents="none"
+              />
             </Animated.View>
           </TouchableWithoutFeedback>
         </Animated.View>
 
-        {/* BOTTOM row: left (UNIFORM) uses ANNOUNCE gradient, right (FAQ) uses EVENT gradient */}
+        {/* BOTTOM row */}
         <View style={s.bottomRow}>
-          {/* LEFT - Uniform */}
+          {/* LEFT – Uniform -> COEF10 */}
           <Animated.View {...responders[1].panHandlers} style={[s.leftWrapper, cardAnimatedStyle(1)]}>
             <TouchableWithoutFeedback onPress={() => handlePress(1, 'COEF10')}>
-              <Animated.View style={[s.leftCard]}>
-                <LinearGradient colors={['#FF7E5F', '#FEB472']} start={[0, 0]} end={[1, 1]} style={StyleSheet.absoluteFill} />
+              <Animated.View style={s.leftCard}>
+                <LinearGradient
+                  colors={['#ff9800', '#ffe0b2']}
+                  start={[0, 0]}
+                  end={[1, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={s.innerShadowSmall} pointerEvents="none" />
-                <Animated.View style={[s.shimmerSmall, { transform: [{ translateX: shimmerTranslate }, { rotate: '18deg' }] }]} pointerEvents="none" />
+                <Animated.View
+                  style={[
+                    s.shimmerSmall,
+                    { transform: [{ translateX: shimmerTranslate }, { rotate: '18deg' }] },
+                  ]}
+                  pointerEvents="none"
+                />
                 <Image source={IMG_UNIFORM} style={s.leftImage} resizeMode="contain" />
-                <Animated.View style={[s.cardGlowLeft, glowStyle(1)]} pointerEvents="none" />
+                <Animated.View
+                  style={[s.cardGlowLeft, glowStyle(1)]}
+                  pointerEvents="none"
+                />
               </Animated.View>
             </TouchableWithoutFeedback>
           </Animated.View>
 
-          {/* RIGHT - FAQ */}
+          {/* RIGHT – FAQ -> COEF9 */}
           <Animated.View {...responders[2].panHandlers} style={[s.rightWrapper, cardAnimatedStyle(2)]}>
             <TouchableWithoutFeedback onPress={() => handlePress(2, 'COEF9')}>
-              <Animated.View style={[s.rightCard]}>
-                <LinearGradient colors={['#FF416C', '#FFB75E']} start={[0, 0]} end={[1, 1]} style={StyleSheet.absoluteFill} />
+              <Animated.View style={s.rightCard}>
+                <LinearGradient
+                  colors={['#ffb300', '#ffe082']}
+                  start={[0, 0]}
+                  end={[1, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={s.innerShadowTall} pointerEvents="none" />
-                <Animated.View style={[s.shimmer, { transform: [{ translateX: shimmerTranslate }, { rotate: '20deg' }] }]} pointerEvents="none" />
+                <Animated.View
+                  style={[
+                    s.shimmer,
+                    { transform: [{ translateX: shimmerTranslate }, { rotate: '20deg' }] },
+                  ]}
+                  pointerEvents="none"
+                />
                 <Image source={IMG_FAQ} style={s.rightImage} resizeMode="contain" />
-                <Animated.View style={[s.cardGlowRight, glowStyle(2)]} pointerEvents="none" />
+                <Animated.View
+                  style={[s.cardGlowRight, glowStyle(2)]}
+                  pointerEvents="none"
+                />
               </Animated.View>
             </TouchableWithoutFeedback>
           </Animated.View>
@@ -229,26 +249,51 @@ export default function COEF4({ navigation }) {
   );
 }
 
-/* Styles (unchanged) */
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff', alignItems: 'center' },
   bg: { ...StyleSheet.absoluteFillObject },
 
-  layerTopRight: { position: 'absolute', right: -40, top: -20, width: 220, height: 150, borderRadius: 150, backgroundColor: '#2f2f2f' },
-  layerBottomLeft: { position: 'absolute', left: -90, bottom: 90, width: 260, height: 260, borderRadius: 160, backgroundColor: '#ff2b2b', opacity: 0.70 },
+  // COE background shapes
+  layerTopRight: {
+    position: 'absolute',
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 150,
+    borderRadius: 150,
+    backgroundColor: '#212121', // black/charcoal
+  },
+  layerBottomLeft: {
+    position: 'absolute',
+    left: -90,
+    bottom: 90,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: '#fb8c00', // orange
+    opacity: 0.75,
+  },
 
-  back: { position: 'absolute', right: 14, top: 50, width: 50, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 60 },
+  back: {
+    position: 'absolute',
+    right: 14,
+    top: 50,
+    width: 50,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 60,
+  },
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
   centerContainer: {
     width: Math.min(420, width - 28),
-    // increased height so block visually sits in the middle of the screen
     height: height * 0.72,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  /* TOP card (hero) */
+  /* TOP card */
   topWrapper: { width: '100%', alignItems: 'center', marginBottom: 16 },
   topCard: {
     width: Math.min(320, width - 56),
@@ -257,9 +302,8 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    // 3D pop via colored rim and shadow
-    shadowColor: '#ff6b4a',
-    shadowOpacity: 0.18,
+    shadowColor: '#fb8c00',
+    shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 20 },
     shadowRadius: 34,
     elevation: 18,
@@ -306,7 +350,6 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    // shadow
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 12 },
@@ -345,7 +388,6 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    // shadow
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 12 },
@@ -365,16 +407,16 @@ const s = StyleSheet.create({
   },
   rightImage: { width: '82%', height: '82%', zIndex: 4 },
 
-  /* Glows under cards */
+  /* Glows */
   cardGlow: {
     position: 'absolute',
     bottom: -12,
     width: Math.min(340, width - 56),
     height: 28,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,80,40,0.28)',
+    backgroundColor: 'rgba(251,140,0,0.30)',
     zIndex: -1,
-    shadowColor: '#ff6b4a',
+    shadowColor: '#fb8c00',
     shadowOpacity: 0.32,
     shadowOffset: { width: 0, height: 18 },
     shadowRadius: 28,
@@ -386,9 +428,9 @@ const s = StyleSheet.create({
     width: '110%',
     height: 22,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,80,40,0.26)',
+    backgroundColor: 'rgba(251,140,0,0.28)',
     zIndex: -1,
-    shadowColor: '#ff7a50',
+    shadowColor: '#ffb74d',
     shadowOpacity: 0.28,
     shadowOffset: { width: 0, height: 12 },
     shadowRadius: 22,
@@ -400,9 +442,9 @@ const s = StyleSheet.create({
     width: '130%',
     height: 22,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,80,40,0.26)',
+    backgroundColor: 'rgba(251,140,0,0.28)',
     zIndex: -1,
-    shadowColor: '#ff6b4a',
+    shadowColor: '#fb8c00',
     shadowOpacity: 0.28,
     shadowOffset: { width: 0, height: 12 },
     shadowRadius: 22,

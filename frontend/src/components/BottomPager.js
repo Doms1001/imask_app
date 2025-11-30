@@ -57,13 +57,25 @@ const DEFAULT_THEME = {
   glow: "rgba(255,213,0,0.28)",
 };
 
+// helper: infer dept key (CCS/CAS/COA/COE/CCJ/CBA) from route name
+function inferDeptFromRouteName(name) {
+  if (!name || typeof name !== "string") return null;
+  const upper = name.toUpperCase();
+
+  const keys = Object.keys(THEME_COLORS); // ["CCS","COA","CBA","CAS","CCJ","COE"]
+  for (const k of keys) {
+    if (upper.startsWith(k)) return k;
+  }
+  return null;
+}
+
 export default function BottomPager({
   navigation,
   activeIndex = null, // prefer null so screen can control it
   targets = null, // screens MUST pass full route names like ['COAF2','COAF3','COAF4']
   logo = null,
   current = null,
-  theme = "CCS", // 🔥 NEW: department key to drive colors
+  theme = null, // 🔥 allow auto-detect; manual override if provided
 }) {
   if (!Array.isArray(targets) || targets.length === 0) {
     console.warn(
@@ -75,14 +87,12 @@ export default function BottomPager({
 
   const count = Math.max(1, targets.length);
 
-  // pick colors for this theme
-  const colors = THEME_COLORS[theme] || DEFAULT_THEME;
-
   const dotAnims = useMemo(
     () => Array.from({ length: count }, () => new Animated.Value(0)),
     [count]
   );
 
+  // ---- detect current route name ----
   const detectedRoute = useMemo(() => {
     if (current) return current;
 
@@ -132,6 +142,23 @@ export default function BottomPager({
     }
   }, [navigation, current]);
 
+  // ---- auto-detect department theme if not explicitly given ----
+  const autoTheme = useMemo(() => {
+    // 1) from current route name
+    const fromRoute = inferDeptFromRouteName(detectedRoute);
+    if (fromRoute) return fromRoute;
+
+    // 2) fallback: from first target route (e.g. 'COAF2')
+    const firstTarget = Array.isArray(targets) && targets[0] ? targets[0] : null;
+    const fromTarget = inferDeptFromRouteName(firstTarget);
+    if (fromTarget) return fromTarget;
+
+    return null;
+  }, [detectedRoute, targets]);
+
+  const themeKey = theme || autoTheme || "CCS"; // CCS as final fallback
+  const colors = THEME_COLORS[themeKey] || DEFAULT_THEME;
+
   const computedIndex = useMemo(() => {
     if (
       typeof activeIndex === "number" &&
@@ -158,8 +185,10 @@ export default function BottomPager({
     computedIndex,
     "activeIndex=",
     activeIndex,
-    "theme=",
-    theme
+    "themeKey=",
+    themeKey,
+    "autoTheme=",
+    autoTheme
   );
 
   useEffect(() => {
@@ -249,7 +278,7 @@ export default function BottomPager({
                   },
                 ]}
               >
-                {/* 🔥 themed glow */}
+                {/* themed glow */}
                 <Animated.View
                   style={[
                     styles.glow,

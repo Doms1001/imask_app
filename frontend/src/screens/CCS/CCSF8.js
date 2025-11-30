@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { getCurrentVisitorName } from "../../state/userSession"; // 🆕 Name source
-import { loadCcsFees } from "../../lib/ccsMediaHelpers";          // 🆕 IMPORT THIS
+import { loadDeptFees } from "../../lib/ccsMediaHelpers";         // 🆕 IMPORT THIS
 
 const { width, height } = Dimensions.get("window");
 const BACK = require("../../../assets/back.png");
@@ -64,7 +64,7 @@ export default function CCSF8({ navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const remote = await loadCcsFees();
+        const remote = await loadDeptFees("CAS");
         console.log("[CCSF8] remote CCS fees:", remote);
         if (!remote) return;
 

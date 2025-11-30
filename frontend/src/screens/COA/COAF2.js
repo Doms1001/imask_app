@@ -1,4 +1,5 @@
-// COAF2 — Yellow + White Theme (Matching COAF1)
+// frontend/src/screens/COA/COAF2.js
+// COAF2 — Yellow + White Theme (Matching COAF1 & CCS-style carousel)
 
 import React, { useRef, useState, useEffect } from "react";
 import {
@@ -28,32 +29,27 @@ const BACK = require("../../../assets/back.png");
 
 const DATA = [
   {
-    title:
-      "Bachelor of Science in Accountancy",
-    subtitle: "accounting professionals",
-    desc: "The Bachelor of Science in Accountancy (BSA) program is designed to develop competent and ethical accounting professionals equipped with analytical, technical, and leadership skills.",
+    title: "Bachelor of Science in Accountancy",
+    subtitle: "Accounting professionals",
+    desc: "The Bachelor of Science in Accountancy (BSA) program develops competent and ethical accounting professionals with strong analytical, technical, and leadership skills.",
   },
   {
-    title:
-      "N/A",
+    title: "N/A",
     subtitle: "N/A",
     desc: "N/A",
   },
   {
-    title:
-      "N/A",
+    title: "N/A",
     subtitle: "N/A",
     desc: "N/A",
   },
   {
-    title:
-      "N/A",
+    title: "N/A",
     subtitle: "N/A",
     desc: "N/A",
   },
   {
-    title:
-      "N/A",
+    title: "N/A",
     subtitle: "N/A",
     desc: "N/A",
   },
@@ -69,17 +65,27 @@ export default function COAF2({ navigation }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
       ])
     );
     loopRef.current = loop;
     loop.start();
 
     return () => {
-      loopRef.current && typeof loopRef.current.stop === "function" && loopRef.current.stop();
+      loopRef.current &&
+        typeof loopRef.current.stop === "function" &&
+        loopRef.current.stop();
     };
-  }, []);
+  }, [pulse]);
 
   function navSafe(route) {
     if (navigation && typeof navigation.navigate === "function") {
@@ -88,13 +94,14 @@ export default function COAF2({ navigation }) {
   }
 
   function onMomentumScrollEnd(e) {
-    const x = e.nativeEvent.contentOffset.x;
-    const ix = Math.round(x / VISIBLE_W);
-    setIndex(ix);
+    const x = e?.nativeEvent?.contentOffset?.x || 0;
+    const rawIndex = Math.round(x / VISIBLE_W);
+    const clamped = Math.max(0, Math.min(rawIndex, DATA.length - 1));
+    setIndex(clamped);
   }
 
   function handleScroll(e) {
-    const x = e.nativeEvent.contentOffset.x;
+    const x = e?.nativeEvent?.contentOffset?.x || 0;
     parallax.setValue(x);
   }
 
@@ -105,7 +112,9 @@ export default function COAF2({ navigation }) {
 
   return (
     <SafeAreaView style={s.screen}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle={Platform.OS === "android" ? "dark-content" : "dark-content"}
+      />
 
       {/* background */}
       <LinearGradient colors={["#fffceb", "#fff8d6"]} style={s.bg} />
@@ -119,6 +128,7 @@ export default function COAF2({ navigation }) {
         style={s.back}
         onPress={() => navSafe("COAF1")}
         activeOpacity={0.8}
+        accessibilityLabel="Back"
       >
         <Image source={BACK} style={s.backImg} />
       </TouchableOpacity>
@@ -131,20 +141,36 @@ export default function COAF2({ navigation }) {
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           snapToInterval={VISIBLE_W}
-          contentContainerStyle={s.scrollContent}
+          snapToAlignment="start"
+          contentContainerStyle={[
+            s.scrollContent,
+            {
+              paddingHorizontal: Math.max(
+                12,
+                (width - CARD_W) / 2 - CARD_GAP / 2
+              ),
+            },
+          ]}
           onMomentumScrollEnd={onMomentumScrollEnd}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: parallax } } }],
             { useNativeDriver: false, listener: handleScroll }
           )}
+          scrollEventThrottle={16}
         >
           {DATA.map((it, i) => {
-            const input = [(i - 1) * VISIBLE_W, i * VISIBLE_W, (i + 1) * VISIBLE_W];
+            const input = [
+              (i - 1) * VISIBLE_W,
+              i * VISIBLE_W,
+              (i + 1) * VISIBLE_W,
+            ];
+
             const rotate = parallax.interpolate({
               inputRange: input,
               outputRange: ["-3deg", "0deg", "3deg"],
               extrapolate: "clamp",
             });
+
             const scale = parallax.interpolate({
               inputRange: input,
               outputRange: [0.98, 1, 0.98],
@@ -158,6 +184,8 @@ export default function COAF2({ navigation }) {
               >
                 <LinearGradient
                   colors={["#ffe066", "#fff1b8"]} // yellow → lighter yellow
+                  start={[0, 0]}
+                  end={[1, 1]}
                   style={s.card}
                 >
                   <Animated.Image
@@ -181,7 +209,9 @@ export default function COAF2({ navigation }) {
                   />
 
                   <View style={s.textBlock}>
-                    <Text style={s.h1}>{it.title}</Text>
+                    <Text style={s.h1} numberOfLines={2}>
+                      {it.title}
+                    </Text>
                     <Text style={s.h2}>{it.subtitle}</Text>
                     <Text style={s.p}>{it.desc}</Text>
                   </View>
@@ -192,7 +222,7 @@ export default function COAF2({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* bottom pager */}
+      {/* bottom pager (COA flow) */}
       <BottomPager
         navigation={navigation}
         activeIndex={index}
@@ -245,7 +275,6 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    paddingHorizontal: (width - CARD_W) / 2 - CARD_GAP / 2,
   },
   cardContainer: { width: CARD_W, marginRight: CARD_GAP },
 
@@ -270,21 +299,21 @@ const s = StyleSheet.create({
 
   h1: {
     color: "#3d3d3d",
-    fontSize: 50,
+    fontSize: 32,
     fontWeight: "800",
-    lineHeight: 50,
-    marginTop: 50,
+    lineHeight: 34,
+    marginBottom: 4,
   },
   h2: {
     color: "#6b6b6b",
     fontSize: 14,
     fontWeight: "700",
-    marginTop: 6,
+    marginTop: 4,
   },
   p: {
     color: "#555",
     marginTop: 10,
-    lineHeight: 16,
+    lineHeight: 18,
     fontWeight: "400",
   },
 });
