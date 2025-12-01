@@ -82,7 +82,7 @@ export default function CCSF9({ navigation }) {
       <View style={s.layerTopRight} />
       <View style={s.layerBottomLeft} />
 
-      {/* 🟥 BACK BUTTON → CCSF4 (fixed) */}
+      {/* 🟥 BACK BUTTON → CCSF4 */}
       <TouchableWithoutFeedback onPress={() => navSafe('CCSF4')}>
         <View style={s.back}>
           <Image source={BACK} style={s.backImg} />
@@ -235,10 +235,9 @@ const s = StyleSheet.create({
 
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
+  // ⬇️ Let the card fill between top & bottom of SafeAreaView
   contentWrap: {
     flex: 1,
-    marginTop: 72,
-    marginBottom: 24,
     width: Math.min(420, width - 32),
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,6 +245,7 @@ const s = StyleSheet.create({
 });
 
 const m = StyleSheet.create({
+  // ⬇️ Fill all vertical space given by contentWrap
   cardWrapper: {
     flex: 1,
     width: '100%',
@@ -292,9 +292,10 @@ const m = StyleSheet.create({
     borderRadius: 4,
   },
 
+  // ⬇️ Answers are now dark, readable on light card
   a: {
     fontSize: 13,
-    color: '#fefefe',
+    color: '#333',
     marginTop: 8,
     lineHeight: 18,
     paddingHorizontal: 6,

@@ -1,11 +1,21 @@
 // frontend/src/state/userSession.js
 
-let currentVisitorName = "";
+let currentVisitorName = null;
+let currentVisitorEmail = null;
 
-// save name from FillupScreen
-export const setCurrentVisitorName = (name) => {
-  currentVisitorName = name || "";
-};
+export function setCurrentVisitorName(name) {
+  currentVisitorName = name;
+}
 
-// read name in CCSF8
-export const getCurrentVisitorName = () => currentVisitorName;
+export function getCurrentVisitorName() {
+  return currentVisitorName;
+}
+
+// 🆕 add these
+export function setCurrentVisitorEmail(email) {
+  currentVisitorEmail = email;
+}
+
+export function getCurrentVisitorEmail() {
+  return currentVisitorEmail;
+}

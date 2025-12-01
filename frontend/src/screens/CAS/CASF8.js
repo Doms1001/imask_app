@@ -19,7 +19,7 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCurrentVisitorName } from "../../state/userSession";
+import { getCurrentVisitorName, getCurrentVisitorEmail } from "../../state/userSession";
 
 // ✅ unified fees loader
 import { loadDeptFees } from "../../lib/ccsMediaHelpers";
@@ -45,6 +45,7 @@ export default function CASF8({ navigation }) {
 
   const initialName = getCurrentVisitorName() || "";
   const [name, setName] = useState(initialName);
+  const [email, setEmail] = useState(initialEmail);
 
   const [semester, setSemester] = useState("1st");
   const [year, setYear] = useState("1");
@@ -101,10 +102,20 @@ export default function CASF8({ navigation }) {
   const balance = Math.max(0, totalAfterDiscount - parseNum(downPayment));
 
   function sendEmail() {
+
+    if (!email) {
+    Alert.alert(
+      "Missing email",
+      "We don't have your email address. Please fill it in on the first form screen."
+    );
+    return;
+  }
+
     const subject = encodeURIComponent("Computation of Fees");
     const body = encodeURIComponent(
       [
         `Name: ${name}`,
+        `Email: ${email}`,
         `Semester: ${semester}`,
         `Year: ${year}`,
         `Academic Year: ${acadYear}`,
@@ -123,11 +134,12 @@ export default function CASF8({ navigation }) {
       ].join("\n")
     );
 
-    const mailto = `mailto:?subject=${subject}&body=${body}`;
-    Linking.openURL(mailto).catch(() => {
-      Alert.alert("Error", "Unable to open mail client.");
-    });
-  }
+    const mailto = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+
+  Linking.openURL(mailto).catch(() => {
+    Alert.alert("Error", "Unable to open mail client.");
+  });
+}
 
   return (
     <SafeAreaView style={s.screen}>

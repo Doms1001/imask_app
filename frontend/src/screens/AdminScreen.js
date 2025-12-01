@@ -313,7 +313,7 @@ export default function AdminScreen({ navigation }) {
       {/* --------------------------- */}
       <TouchableOpacity
         style={styles.userModeBtn}
-        onPress={() => navigation.navigate("OnboardingScreen")}
+        onPress={() => navigation.navigate("Onboarding")}
       >
         <Text style={styles.userModeText}>User Mode</Text>
       </TouchableOpacity>

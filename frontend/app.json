@@ -4,11 +4,11 @@
     "slug": "imask-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/rflogo.png",
+    "icon": "./assets/imask-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/imask-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

@@ -123,15 +123,17 @@ export default function CCJF3({ navigation }) {
       },
       onPanResponderRelease: () => {
         Animated.parallel([
-          Animated.spring(tilt[i].x, { toValue: 0, useNativeDriver: false }),
-          Animated.spring(tilt[i].y, { toValue: 0, useNativeDriver: false }),
+          // 🔽 FIXED: now also native-driven
+          Animated.spring(tilt[i].x, { toValue: 0, useNativeDriver: true }),
+          Animated.spring(tilt[i].y, { toValue: 0, useNativeDriver: true }),
           Animated.spring(pressScales[i], { toValue: 1, useNativeDriver: true }),
         ]).start();
       },
       onPanResponderTerminate: () => {
         Animated.parallel([
-          Animated.spring(tilt[i].x, { toValue: 0, useNativeDriver: false }),
-          Animated.spring(tilt[i].y, { toValue: 0, useNativeDriver: false }),
+          // 🔽 FIXED: now also native-driven
+          Animated.spring(tilt[i].x, { toValue: 0, useNativeDriver: true }),
+          Animated.spring(tilt[i].y, { toValue: 0, useNativeDriver: true }),
           Animated.spring(pressScales[i], { toValue: 1, useNativeDriver: true }),
         ]).start();
       },

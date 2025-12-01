@@ -245,7 +245,7 @@ export default function CCJF2({ navigation }) {
       {/* BottomPager – same pattern as CCSF2 but for CCJ screens */}
       <BottomPager
         navigation={navigation}
-        activeIndex={index}
+        activeIndex={0}
         targets={["CCJF2", "CCJF3", "CCJF4"]}
       />
     </SafeAreaView>

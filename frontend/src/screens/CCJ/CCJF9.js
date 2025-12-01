@@ -234,10 +234,9 @@ const s = StyleSheet.create({
 
   backImg: { width: 34, height: 34, tintColor: "#ffffff" },
 
+  // ⬇️ Stretch card area between top & bottom of SafeAreaView
   contentWrap: {
     flex: 1,
-    marginTop: 72,
-    marginBottom: 24,
     width: Math.min(420, width - 32),
     alignItems: "center",
     justifyContent: "center",
@@ -245,9 +244,10 @@ const s = StyleSheet.create({
 });
 
 const m = StyleSheet.create({
+  // ⬇️ Fill available vertical space inside contentWrap
   cardWrapper: {
-    flex: 1,
     width: "100%",
+    height: "100%",
     borderRadius: 22,
     overflow: "hidden",
     shadowColor: "#000",
@@ -278,24 +278,32 @@ const m = StyleSheet.create({
   scrollInner: { paddingBottom: 24 },
 
   faqCard: {
-    backgroundColor: "rgba(10,10,10,0.94)",
+    backgroundColor: "rgba(10,10,10,0.96)",
     borderRadius: 10,
     padding: 12,
   },
 
-  faqTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10, color: "#fff" },
+  faqTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 10,
+    color: "#ffffff",
+  },
+
   qBlock: { marginBottom: 12 },
 
+  // ⬇️ Question chip: light-on-dark to match CCJ theme
   q: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#111",
-    backgroundColor: "#f5f5f5",
+    color: "#f5f5f5",
+    backgroundColor: "rgba(255,255,255,0.06)",
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 4,
   },
 
+  // ⬇️ Answers: bright gray for readability
   a: {
     fontSize: 13,
     color: "#f5f5f5",
@@ -304,12 +312,17 @@ const m = StyleSheet.create({
     paddingHorizontal: 6,
   },
 
+  // ⬇️ Highlight: subtle block but still visible on dark
   highlight: {
     marginTop: 8,
-    backgroundColor: "#FFF7E0",
+    backgroundColor: "rgba(255,255,255,0.06)",
     padding: 8,
     borderRadius: 6,
   },
 
-  highlightText: { fontSize: 12, fontWeight: "600", color: "#222" },
+  highlightText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#f5f5f5",
+  },
 });

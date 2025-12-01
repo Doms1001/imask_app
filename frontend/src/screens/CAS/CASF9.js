@@ -240,21 +240,21 @@ const s = StyleSheet.create({
 
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
+  // ⬇️ UPDATED: let the card stretch from top to bottom of the SafeAreaView
   contentWrap: {
-    marginTop: 72,
-    marginBottom: 24,
+    flex: 1,
     width: Math.min(420, width - 32),
     alignItems: 'center',
     justifyContent: 'center',
-    height: Math.min(640, height * 0.82),
   },
 });
 
 /* card + FAQ styles */
 const m = StyleSheet.create({
+  // ⬇️ UPDATED: card fills the vertical space inside contentWrap
   cardWrapper: {
     width: Math.min(360, width - 56),
-    height: Math.min(640, height * 0.82),
+    height: '100%',
     borderRadius: 22,
     overflow: 'hidden',
     alignItems: 'center',
@@ -326,9 +326,10 @@ const m = StyleSheet.create({
     borderRadius: 4,
   },
 
+  // ⬇️ UPDATED: answer text now pure black
   a: {
     fontSize: 13,
-    color: '#333',
+    color: '#000',
     marginTop: 8,
     lineHeight: 18,
     paddingHorizontal: 6,

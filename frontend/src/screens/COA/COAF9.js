@@ -270,19 +270,20 @@ const s = StyleSheet.create({
 
   backImg: { width: 34, height: 34, tintColor: '#000' },
 
+  // ⬇️ Let the big card fill the vertical safe area space
   contentWrap: {
-    marginTop: 48,
+    flex: 1,
     width: Math.min(420, width - 40),
-    height: Math.min(640, height * 0.82),
     alignItems: 'center',
     justifyContent: 'center',
   },
 });
 
 const m = StyleSheet.create({
+  // ⬇️ Fill all vertical space given by contentWrap
   cardWrapper: {
-    width: Math.min(360, width - 56),
-    height: Math.min(640, height * 0.82),
+    flex: 1,
+    width: '100%',
     borderRadius: 22,
     overflow: 'hidden',
     alignItems: 'center',

@@ -1,4 +1,6 @@
-// CBAF9.js - BIG GRADIENT RECTANGLE with embedded FAQ inside the card (Firestore & images removed)
+// frontend/src/screens/CBA/CBAF9.js
+// CBAF9 – FAQ screen (static content, CBA gold theme, no Firebase)
+
 import React, { useRef, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -18,10 +20,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width, height } = Dimensions.get('window');
 const BACK = require('../../../assets/back.png');
 
-// Local screenshot (kept as a visual reference inside the card)
-// (not used in this version but you can place an <Image> if you want)
-const FAQ_IMG_URI = 'file:///mnt/data/572f4ca4-169c-4ab3-99b4-78368d7ae56d.png';
-
 export default function CBAF9({ navigation }) {
   const entrance = useRef(new Animated.Value(0)).current;
   const shimmer = useRef(new Animated.Value(-1)).current;
@@ -31,24 +29,26 @@ export default function CBAF9({ navigation }) {
   useEffect(() => {
     console.log('CBAF9 mounted (static FAQ card)');
 
+    // entrance animation
     entranceRef.current = Animated.timing(entrance, {
       toValue: 1,
       duration: 600,
-      useNativeDriver: false,
+      useNativeDriver: true,
     });
     entranceRef.current.start();
 
+    // shimmer loop
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmer, {
           toValue: 1,
           duration: 1400,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(shimmer, {
           toValue: -1,
           duration: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ])
     );
@@ -257,19 +257,20 @@ const s = StyleSheet.create({
 
   backImg: { width: 34, height: 34, tintColor: '#fff' },
 
+  // ⬇️ UPDATED: let the card stretch between top & bottom of SafeAreaView
   contentWrap: {
-    marginTop: 48,
+    flex: 1,
     width: Math.min(420, width - 40),
-    height: Math.min(640, height * 0.82),
     alignItems: 'center',
     justifyContent: 'center',
   },
 });
 
 const m = StyleSheet.create({
+  // ⬇️ UPDATED: card fills available vertical space
   cardWrapper: {
     width: Math.min(360, width - 56),
-    height: Math.min(640, height * 0.82),
+    height: '100%',
     borderRadius: 22,
     overflow: 'hidden',
     alignItems: 'center',
@@ -318,7 +319,6 @@ const m = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderRadius: 8,
     padding: 10,
-    borderWidth: 0,
   },
 
   faqTitle: {
@@ -343,9 +343,10 @@ const m = StyleSheet.create({
     borderRadius: 4,
   },
 
+  // ⬇️ UPDATED: answers now pure black
   a: {
     fontSize: 13,
-    color: '#333',
+    color: '#000',
     marginTop: 8,
     lineHeight: 18,
     paddingHorizontal: 6,
